@@ -1,9 +1,51 @@
+"use client"
+
+import type React from "react"
+
 import { Button } from "@/components/ui/button"
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { CountdownTimer } from "@/components/countdown-timer"
-import { Search, DollarSign, Clock, Github, ExternalLink } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { ThemeToggle } from "@/components/theme-toggle"
+import { Search, DollarSign, Clock, Github, ExternalLink, Mail, CheckCircle } from "lucide-react"
+import { useState } from "react"
 
 export default function HomePage() {
+  const [email, setEmail] = useState("")
+  const [isSubmitted, setIsSubmitted] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
+
+  const handleWaitlistSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!email) return
+
+    setIsLoading(true)
+    setError("")
+
+    try {
+      const response = await fetch("/api/waitlist", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      })
+
+      if (response.ok) {
+        setIsSubmitted(true)
+        setEmail("")
+      } else {
+        const data = await response.json()
+        setError(data.error || "Failed to join waitlist")
+      }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (err) {
+      setError("Network error. Please try again.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -30,7 +72,11 @@ export default function HomePage() {
             >
               GitHub
             </a>
+            <ThemeToggle />
           </nav>
+          <div className="md:hidden">
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 
@@ -44,11 +90,55 @@ export default function HomePage() {
             Compare prices across multiple registrars instantly. Save money and time with NameHunt - your domain search
             companion.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Button size="lg" className="text-lg px-8 py-6 font-semibold">
-              <Search className="w-5 h-5 mr-2" />
-              Join the Waitlist
-            </Button>
+
+          {!isSubmitted ? (
+            <form
+              onSubmit={handleWaitlistSubmit}
+              className="flex flex-col sm:flex-row gap-4 justify-center items-center max-w-md mx-auto"
+            >
+              <div className="flex-1 w-full">
+                <Input
+                  type="email"
+                  placeholder="Enter your email address"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="text-lg px-4 py-6 bg-background border-border"
+                />
+                {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
+              </div>
+              <Button
+                type="submit"
+                size="lg"
+                className="text-lg px-8 py-6 font-semibold whitespace-nowrap"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <div className="w-5 h-5 mr-2 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+                    Joining...
+                  </>
+                ) : (
+                  <>
+                    <Mail className="w-5 h-5 mr-2" />
+                    Join Waitlist
+                  </>
+                )}
+              </Button>
+            </form>
+          ) : (
+            <div className="bg-primary/10 border border-primary/20 rounded-lg p-6 max-w-md mx-auto">
+              <div className="flex items-center justify-center mb-4">
+                <CheckCircle className="w-8 h-8 text-primary" />
+              </div>
+              <h3 className="text-xl font-semibold text-foreground mb-2">You&apos;re on the list!</h3>
+              <p className="text-muted-foreground">
+                We&apos;ll notify you as soon as NameHunt launches. Get ready to find the best domain deals!
+              </p>
+            </div>
+          )}
+
+          <div className="mt-6">
             <Button variant="outline" size="lg" className="text-lg px-8 py-6 bg-transparent" asChild>
               <a href="https://github.com/Abhishek-B-R/namehunt" target="_blank" rel="noopener noreferrer">
                 <Github className="w-5 h-5 mr-2" />
@@ -70,7 +160,6 @@ export default function HomePage() {
           <p className="text-lg text-muted-foreground mb-8">
             NameHunt is being crafted with care. Follow our development journey and be the first to know when we launch.
           </p>
-          <CountdownTimer />
           <div className="mt-8">
             <Button variant="outline" asChild>
               <a href="https://github.com/Abhishek-B-R/namehunt" target="_blank" rel="noopener noreferrer">

@@ -14,3 +14,6 @@ const eslintConfig = [
 ];
 
 export default eslintConfig;
+eslintConfig.push({
+  ignores: ["**/lib/generated/**"],
+});

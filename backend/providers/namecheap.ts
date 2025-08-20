@@ -1,5 +1,6 @@
 import axios from "axios";
 import { XMLParser } from "fast-xml-parser";
+import type {CheckDomainResult,PricingRow, PricingResult} from "../../zod-types/types/namecheap"
 
 const NAMECHEAP_BASE = "https://api.sandbox.namecheap.com/xml.response";
 const parser = new XMLParser({
@@ -7,53 +8,6 @@ const parser = new XMLParser({
   attributeNamePrefix: "",
   trimValues: true,
 });
-
-/* Types */
-type CheckDomainResult = {
-  ok: boolean;
-  domain: string; 
-  available: boolean;
-  isPremium: boolean;
-  prices: {
-    premiumRegistration: number;
-    premiumRenewal: number;
-    premiumRestore: number;
-    premiumTransfer: number;
-    icannFee: number;
-    eapFee?: number;
-  };
-  meta: {
-    requestedCommand?: string;
-    server?: string;
-    executionTime?: number;
-    gmtOffset?: string;
-  };
-  raw: any; // keep original parsed XML for debugging
-};
-
-type PricingRow = {
-  duration: number;
-  durationType: string; // YEAR
-  price: number;
-  regularPrice: number;
-  yourPrice: number;
-  couponPrice?: number;
-  currency: string;
-};
-
-type PricingResult = {
-  ok: boolean;
-  tld: string;
-  category: "REGISTER" | "RENEW" | "TRANSFER" | string;
-  prices: PricingRow[];
-  meta: {
-    requestedCommand?: string;
-    server?: string;
-    executionTime?: number;
-    gmtOffset?: string;
-  };
-  raw: any; // keep original parsed XML for debugging
-};
 
 function buildParams(extra: Record<string, string>) {
   const base = {

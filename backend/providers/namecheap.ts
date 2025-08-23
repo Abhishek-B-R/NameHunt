@@ -1,6 +1,10 @@
 import axios from "axios";
 import { XMLParser } from "fast-xml-parser";
-import type {CheckDomainResult,PricingRow, PricingResult} from "../../zod-types/types/namecheap"
+import type {
+  CheckDomainResult,
+  PricingRow,
+  PricingResult,
+} from "../types/namecheap";
 
 const NAMECHEAP_BASE = "https://api.sandbox.namecheap.com/xml.response";
 const parser = new XMLParser({
@@ -150,7 +154,6 @@ export async function getDomainPriceNamecheap(
     raw: parsed,
   };
 }
-
 
 const check = await checkDomainNamecheap("abhishek.tech");
 console.log(JSON.stringify(check, null, 2));

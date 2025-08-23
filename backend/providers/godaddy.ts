@@ -1,5 +1,5 @@
 import axios from "axios";
-import GoDaddyResponse from "../../zod-types/types/godaddy";
+import GoDaddyResponse from "../types/godaddy";
 
 async function checkDomain(domain: string, period: number) {
   try {

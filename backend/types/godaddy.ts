@@ -7,6 +7,7 @@ const Success = z.object({
   domain: z.string(), // just a string, not URL
   period: z.number().min(1).optional(),
   price: z.number().min(0),
+  isPremium: z.boolean().optional(),
 });
 
 const Taken = z.object({

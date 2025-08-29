@@ -16,7 +16,14 @@
   "dependencies": {
     "axios": "^1.11.0",
     "fast-xml-parser": "^5.2.5",
+    "fingerprint-generator": "^2.1.70",
+    "fingerprint-injector": "^2.1.70",
     "hono": "^4.9.1",
+    "p-limit": "^7.1.1",
+    "playwright": "^1.55.0",
+    "playwright-extra": "^4.3.6",
+    "playwright-extra-plugin-stealth": "^0.0.1",
+    "tough-cookie": "^6.0.0",
     "zod": "^4.0.17"
   }
 }

@@ -4,17 +4,22 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "bun --watch index.ts",
-    "build": "bun build"
+    "dev": "pnpm run dev:index",
+    "build": "pnpm build",
+    "dev:gd": "tsx playwright/demo-godaddy.ts abhishek.tech",
+    "test:stealth": "tsx playwright/test.ts"
   },
   "devDependencies": {
-    "@types/bun": "^1.2.20"
+    "@types/bun": "^1.2.20",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2"
   },
   "peerDependencies": {
     "typescript": "^5"
   },
   "dependencies": {
     "axios": "^1.11.0",
+    "dotenv": "^17.2.1",
     "fast-xml-parser": "^5.2.5",
     "fingerprint-generator": "^2.1.70",
     "fingerprint-injector": "^2.1.70",
@@ -22,7 +27,9 @@
     "p-limit": "^7.1.1",
     "playwright": "^1.55.0",
     "playwright-extra": "^4.3.6",
-    "playwright-extra-plugin-stealth": "^0.0.1",
+    "puppeteer": "^24.17.1",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
     "tough-cookie": "^6.0.0",
     "zod": "^4.0.17"
   }

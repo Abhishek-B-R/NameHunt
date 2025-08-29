@@ -1,38 +1,21 @@
-import { chromium } from "playwright-extra";
-import { type BrowserContext } from "playwright";
-import StealthPlugin from "playwright-extra-plugin-stealth";
+import { chromium, BrowserContext } from "playwright";
 import { FingerprintGenerator } from "fingerprint-generator";
 import { FingerprintInjector } from "fingerprint-injector";
 
-chromium.use(StealthPlugin());
+export async function newStealthContext(p0: { profileDir: string; headless: boolean; locale: string; timezoneId: string; proxy: { server: string; }; }): Promise<BrowserContext> {
+  const context = await chromium.launchPersistentContext("./profiles/godaddy", {
+    headless: false,
+    proxy: {
+      server: "http://gate.decodo.com:10004", // pick any port from your dashboard
+      username: "sp9h0i91ik",                 // your Decodo username
+      password: "a8Vgu17GhINbnl_k9w",                // your Decodo password
+    },
+    viewport: { width: 1366, height: 768 },
+    locale: "en-US",
+    timezoneId: "America/New_York",
+  });
 
-export type BrowserOpts = {
-  proxyUrl?: string;
-  profileDir?: string;
-  locale?: string;
-  timezoneId?: string;
-  headless?: boolean;
-};
-
-export async function newStealthContext(
-  opts: BrowserOpts = {}
-): Promise<BrowserContext> {
-  const ctx = await chromium.launchPersistentContext(
-    opts.profileDir || "./profiles/godaddy",
-    {
-      headless: opts.headless ?? false,
-      proxy: opts.proxyUrl ? { server: opts.proxyUrl } : undefined,
-      viewport: { width: 1366, height: 800 },
-      locale: opts.locale || "en-US",
-      timezoneId: opts.timezoneId || "America/New_York",
-      args: [
-        "--disable-blink-features=AutomationControlled",
-        "--no-sandbox",
-        "--disable-dev-shm-usage",
-      ],
-    }
-  );
-
+  // Fingerprint injection
   const fg = new FingerprintGenerator({
     devices: ["desktop"],
     operatingSystems: ["windows", "macos"],
@@ -40,11 +23,40 @@ export async function newStealthContext(
   });
   const fp = fg.getFingerprint();
   const injector = new FingerprintInjector();
-  await injector.attachFingerprintToPlaywright(ctx, fp);
+  await injector.attachFingerprintToPlaywright(context, fp);
 
-  await ctx.addInitScript(() => {
+  // Hide webdriver
+  await context.addInitScript(() => {
+    // webdriver
     Object.defineProperty(navigator, "webdriver", { get: () => undefined });
-  });
 
-  return ctx;
+    // plugins
+    Object.defineProperty(navigator, "plugins", {
+        get: () => [1, 2, 3],
+    });
+
+    // languages
+    Object.defineProperty(navigator, "languages", {
+        get: () => ["en-US", "en"],
+    });
+
+    // hardwareConcurrency
+    Object.defineProperty(navigator, "hardwareConcurrency", {
+        get: () => [4, 6, 8][Math.floor(Math.random() * 3)],
+    });
+
+    // chrome.runtime
+    (window as any).chrome = { runtime: {} };
+    });
+
+  return context;
 }
+
+// Test proxy
+// (async () => {
+//   const ctx = await newStealthContext();
+//   const page = await ctx.newPage();
+//   await page.goto("https://ipv4.icanhazip.com", { waitUntil: "domcontentloaded" });
+//   console.log("Proxy IP:", (await page.textContent("body"))?.trim());
+//   await ctx.close();
+// })();

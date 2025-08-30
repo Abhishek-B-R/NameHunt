@@ -23,6 +23,9 @@ importers:
       fingerprint-injector:
         specifier: ^2.1.70
         version: 2.1.70(playwright@1.55.0)(puppeteer@24.17.1(typescript@5.9.2))
+      fs-extra:
+        specifier: ^11.3.1
+        version: 11.3.1
       hono:
         specifier: ^4.9.1
         version: 4.9.5
@@ -35,6 +38,9 @@ importers:
       playwright-extra:
         specifier: ^4.3.6
         version: 4.3.6(playwright-core@1.55.0)(playwright@1.55.0)
+      playwright-extra-plugin-stealth:
+        specifier: ^0.0.1
+        version: 0.0.1
       puppeteer:
         specifier: ^24.17.1
         version: 24.17.1(typescript@5.9.2)
@@ -555,6 +561,10 @@ packages:
     resolution: {integrity: sha512-oRXApq54ETRj4eMiFzGnHWGy+zo5raudjuxN0b8H7s/RU2oW0Wvsx9O0ACRN/kRq9E8Vu/ReskGB5o3ji+FzHQ==}
     engines: {node: '>=12'}
 
+  fs-extra@11.3.1:
+    resolution: {integrity: sha512-eXvGGwZ5CL17ZSwHWd3bbgk7UUpF6IFHtP57NYYakPvHOs8GDgDe5KJI36jIJzDkJ6eJjuzRA8eBQb6SkKue0g==}
+    engines: {node: '>=14.14'}
+
   fs.realpath@1.0.0:
     resolution: {integrity: sha512-OO0pH2lK6a0hZnAdau5ItzHPI6pUlvI7jMVnxUQRtw4owF2wk8lOSabtGDCTP4Ggrg2MbGnWO9X8K1t4+fGMDw==}
 
@@ -794,6 +804,9 @@ packages:
     resolution: {integrity: sha512-GvZs4vU3U5ro2nZpeiwyb0zuFaqb9sUiAJuyrWpcGouD8y9/HLgGbNRjIph7zU9D3hnPaisMl9zG9CgFi/biIg==}
     engines: {node: '>=18'}
     hasBin: true
+
+  playwright-extra-plugin-stealth@0.0.1:
+    resolution: {integrity: sha512-eI0Ujf4MXbcupzlVEXaaOnb+Exjt1sFi7t/3KxIA5pVww+WRAXRWdhqTz0glX62jJq2YM8fLu+GyvULpjTpZrw==}
 
   playwright-extra@4.3.6:
     resolution: {integrity: sha512-q2rVtcE8V8K3vPVF1zny4pvwZveHLH8KBuVU2MoE3Jw4OKVoBWsHI9CH9zPydovHHOCDxjGN2Vg+2m644q3ijA==}
@@ -1472,6 +1485,12 @@ snapshots:
       jsonfile: 6.2.0
       universalify: 2.0.1
 
+  fs-extra@11.3.1:
+    dependencies:
+      graceful-fs: 4.2.11
+      jsonfile: 6.2.0
+      universalify: 2.0.1
+
   fs.realpath@1.0.0: {}
 
   fsevents@2.3.2:
@@ -1714,6 +1733,8 @@ snapshots:
   picocolors@1.1.1: {}
 
   playwright-core@1.55.0: {}
+
+  playwright-extra-plugin-stealth@0.0.1: {}
 
   playwright-extra@4.3.6(playwright-core@1.55.0)(playwright@1.55.0):
     dependencies:

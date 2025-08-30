@@ -7,6 +7,7 @@ export type SSResult = {
   ok: boolean;
   domain: string;
   available?: boolean;
+  isPremium?: boolean;
   registrationPrice?: number;
   renewalPrice?: number;
   currency?: string;
@@ -77,40 +78,43 @@ export async function checkSquarespace(
 
     await page.goto(url, {
       waitUntil: "domcontentloaded",
-      timeout: opts.timeoutMs ?? 15000,
+      timeout: opts.timeoutMs ?? 60000,
     });
 
     // Let SPA hydrate
-    await sleep(1500);
+    await sleep(2000);
 
-    // Grab the primary result card
-    const card = page.locator('[data-test="search-result"]').first();
-    await card.waitFor({ timeout: 8000 });
+    // Find the row that contains the exact domain
+    const row = page.locator(`div[role="row"]:has-text("${domain}")`).first();
+    await row.waitFor({ timeout: 60000 });
 
-    const cardText = (await card.innerText().catch(() => "")) || "";
-    const cardHTML = (await card.innerHTML().catch(() => "")) || "";
-
-    // Detect availability
-    const taken = /\bTAKEN\b/i.test(cardText) || /unavailable/i.test(cardText);
-    const addToCart = /Add to cart/i.test(cardText) || /Add/i.test(cardText);
-
-    const available = addToCart && !taken;
+    const rowText = (await row.innerText().catch(() => "")) || "";
 
     // Extract price
     let priceText = "";
-    const priceNode = card.locator('[data-test="price"], .price, strong').first();
-    if (await priceNode.isVisible().catch(() => false)) {
-      priceText = (await priceNode.innerText().catch(() => "")) || "";
+    const priceNode = row.locator("span, strong, div").filter({
+      hasText: /\$|USD|INR|₹|EUR|£/,
+    });
+    if (await priceNode.first().isVisible().catch(() => false)) {
+      priceText = (await priceNode.first().innerText().catch(() => "")) || "";
     }
     const reg = parsePrice(priceText);
+
+    // Detect availability
+    const taken = /\bTAKEN\b/i.test(rowText) || /unavailable/i.test(rowText);
+    const addToCart = /Add to cart/i.test(rowText) || /🛒/.test(rowText);
+    const premium = /Premium/i.test(rowText);
+
+    const available = addToCart && !taken;
 
     return {
       ok: true,
       domain,
       available,
+      isPremium: premium,
       registrationPrice: reg.amount,
       currency: reg.currency || "USD",
-      rawText: cardText.slice(0, 900),
+      rawText: rowText.slice(0, 900),
     };
   } catch (e: any) {
     return { ok: false, domain, error: e?.message || "Navigation failed" };

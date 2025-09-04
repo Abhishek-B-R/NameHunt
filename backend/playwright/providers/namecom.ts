@@ -88,6 +88,7 @@ export async function checkDomainNameCom(
       page.waitForSelector('.domain-result', { timeout: 5000 }),
       page.waitForSelector('.search-results', { timeout: 5000 }),
       page.waitForSelector('[class*="result"]', { timeout: 5000 }),
+      page.waitForSelector('button:has-text("Make Offer")', { timeout: 5000 }),
       sleep(5000)
     ]);
 
@@ -154,7 +155,51 @@ export async function checkDomainNameCom(
       };
     }
 
-    // Detect availability
+    // Check specifically for "Make Offer" button/text - this indicates domain is NOT available
+    const makeOfferSelectors = [
+      'button:has-text("Make Offer")',
+      'a:has-text("Make Offer")',
+      ':has-text("Make Offer")',
+      'button:has-text("MAKE OFFER")',
+      'a:has-text("MAKE OFFER")'
+    ];
+
+    let hasMakeOffer = false;
+    for (const selector of makeOfferSelectors) {
+      try {
+        const btn = resultCard.locator(selector).first();
+        if (await btn.isVisible({ timeout: 500 })) {
+          hasMakeOffer = true;
+          break;
+        }
+      } catch (e) {
+        continue;
+      }
+    }
+
+    // Also check for "Make Offer" in the text content
+    const hasMakeOfferText = /make\s+offer/i.test(cardText);
+
+    // If Make Offer is present, domain is definitely NOT available
+    if (hasMakeOffer || hasMakeOfferText) {
+      await ctx.close();
+      if (opts.ephemeralProfile !== false) {
+        await fs.remove(profileDir).catch(() => {});
+      }
+      
+      return {
+        ok: true,
+        domain,
+        available: false,
+        isPremium: undefined,
+        registrationPrice: undefined,
+        renewalPrice: undefined,
+        currency: undefined,
+        rawText: cardText.slice(0, 900),
+      };
+    }
+
+    // Detect availability through Add to Cart buttons
     const addToCartButtons = [
       'button:has-text("Add to Cart")',
       'button:has-text("ADD TO CART")',
@@ -177,8 +222,8 @@ export async function checkDomainNameCom(
       }
     }
 
-    // Check for taken/unavailable indicators
-    const takenIndicators = [
+    // Check for other taken/unavailable indicators
+    const otherTakenIndicators = [
       /taken/i.test(cardText),
       /unavailable/i.test(cardText),
       /registered/i.test(cardText),
@@ -188,7 +233,26 @@ export async function checkDomainNameCom(
       cardText.includes('❌')
     ];
 
-    const isTaken = takenIndicators.some(Boolean);
+    const isTaken = otherTakenIndicators.some(Boolean);
+
+    // If taken by other indicators, return unavailable
+    if (isTaken) {
+      await ctx.close();
+      if (opts.ephemeralProfile !== false) {
+        await fs.remove(profileDir).catch(() => {});
+      }
+      
+      return {
+        ok: true,
+        domain,
+        available: false,
+        isPremium: undefined,
+        registrationPrice: undefined,
+        renewalPrice: undefined,
+        currency: undefined,
+        rawText: cardText.slice(0, 900),
+      };
+    }
 
     // Premium detection
     const isPremium = 
@@ -197,7 +261,7 @@ export async function checkDomainNameCom(
       cardText.includes('💎') ||
       cardText.includes('⭐');
 
-    // Price extraction
+    // Price extraction - only if domain is available
     let priceText = cardText;
     
     // Look specifically in price-related elements
@@ -209,7 +273,9 @@ export async function checkDomainNameCom(
       '.amount',
       '[data-testid*="price"]',
       'span:has-text("$")',
-      'div:has-text("$")'
+      'div:has-text("$")',
+      'span:has-text("₹")',
+      'div:has-text("₹")'
     ];
 
     for (const selector of priceSelectors) {
@@ -229,15 +295,8 @@ export async function checkDomainNameCom(
 
     const reg = parsePrice(priceText);
     
-    // Determine availability
-    let available: boolean | undefined;
-    if (isTaken) {
-      available = false;
-    } else if (hasAddToCart || reg.amount) {
-      available = true;
-    } else {
-      available = undefined;
-    }
+    // Determine availability - domain is available if it has Add to Cart or pricing
+    const available = hasAddToCart || reg.amount !== undefined;
 
     // Renewal price detection
     const renewMatch = cardText.match(/renew[s]?\s+at[^0-9]*([\$€£₹])\s*([\d,\.]+)/i) ||

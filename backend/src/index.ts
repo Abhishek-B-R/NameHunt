@@ -5,7 +5,7 @@ import { serve } from "@hono/node-server";
 import { cors } from "hono/cors";
 import { prettyJSON } from "hono/pretty-json";
 import { runBrowsingProvider } from "./browsing.js";
-import {ProviderNames}  from "./types/providerNames.js"
+import { ProviderNames }  from "./types/providerNames.js"
 const app = new Hono();
 
 app.use("*", cors());

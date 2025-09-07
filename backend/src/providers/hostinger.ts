@@ -115,4 +115,4 @@ export default async function checkHostinger(domain: string, tld: string) {
   const pricing = await resolveDomainPricing(domain, tld);
   return pricing;
 }
-console.log(JSON.stringify(await checkHostinger('abhishek','tech'), null, 2));
+// console.log(JSON.stringify(await checkHostinger('abhishek','tech'), null, 2));

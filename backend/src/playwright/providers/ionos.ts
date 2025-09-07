@@ -2,34 +2,8 @@ import fs from "fs-extra";
 import path from "path";
 import crypto from "crypto";
 import { newStealthContext } from "../browser.js";
-
-export type DCResult = {
-  ok: boolean;
-  domain: string;
-  available?: boolean;
-  isPremium?: boolean;
-  // For backward compatibility:
-  // registrationPrice will be the intro price if available, else the only price found
-  registrationPrice?: number;
-  renewalPrice?: number;
-  currency?: string;
-  error?: string;
-  rawText?: string;
-
-  // New fields to be explicit
-  registrationPriceIntro?: number;
-  registrationPriceRegular?: number;
-};
-
-type RunOpts = {
-  proxy?: { server: string; username?: string; password?: string };
-  headless?: boolean;
-  locale?: string;
-  timezoneId?: string;
-  ephemeralProfile?: boolean;
-  profileBaseDir?: string;
-  timeoutMs?: number;
-};
+import type { DCResult } from "../../types/resultSchema.js";
+import type { RunOpts } from "../../types/runOptions.js";
 
 function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
@@ -258,11 +232,6 @@ export async function checkDomainIONOS(
 
     // Extract all prices
     const priceHits = parseAllPrices(cardText);
-
-    // Heuristics:
-    // Typical card: "Save 37%  $20  $5.10 / year  for 1 year  Introductory Offer"
-    // - The higher price is regular, the lower is intro
-    // - If only one price, treat it as intro and also as renewal when "Introductory" absent
     let registrationPriceIntro: number | undefined;
     let registrationPriceRegular: number | undefined;
     let currency: string | undefined;
@@ -329,9 +298,6 @@ export async function checkDomainIONOS(
       renewalPrice,
       currency: currency || undefined,
       rawText: cardText.slice(0, 900),
-      // new explicit fields
-      registrationPriceIntro,
-      registrationPriceRegular,
     };
   } catch (e: any) {
     try {

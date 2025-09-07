@@ -2,28 +2,8 @@ import fs from "fs-extra";
 import path from "path";
 import crypto from "crypto";
 import { newStealthContext } from "../browser.js";
-
-export type SSResult = {
-  ok: boolean;
-  domain: string;
-  available?: boolean;
-  isPremium?: boolean;
-  registrationPrice?: number;
-  renewalPrice?: number;
-  currency?: string;
-  error?: string;
-  rawText?: string;
-};
-
-type RunOpts = {
-  proxy?: { server: string; username?: string; password?: string };
-  headless?: boolean;
-  locale?: string;
-  timezoneId?: string;
-  ephemeralProfile?: boolean;
-  profileBaseDir?: string;
-  timeoutMs?: number;
-};
+import type { DCResult } from "../../types/resultSchema.js";
+import type { RunOpts } from "../../types/runOptions.js";
 
 function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
@@ -54,7 +34,7 @@ function parsePrice(text: string) {
 export async function checkSquarespace(
   domain: string,
   opts: RunOpts = {}
-): Promise<SSResult> {
+): Promise<DCResult> {
   const profileDir =
     opts.ephemeralProfile === false
       ? path.join(opts.profileBaseDir || "./profiles", "squarespace")

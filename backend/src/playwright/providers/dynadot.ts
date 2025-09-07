@@ -2,28 +2,8 @@ import fs from "fs-extra";
 import * as path from "path";
 import * as crypto from "crypto";
 import { newStealthContext } from "../browser.js";
-
-export type DDResult = {
-  ok: boolean;
-  domain: string;
-  available?: boolean;
-  isPremium?: boolean;
-  registrationPrice?: number;
-  renewalPrice?: number;
-  currency?: string;
-  error?: string;
-  rawText?: string;
-};
-
-type RunOpts = {
-  proxy?: { server: string; username?: string; password?: string };
-  headless?: boolean;
-  locale?: string;
-  timezoneId?: string;
-  ephemeralProfile?: boolean;
-  profileBaseDir?: string;
-  timeoutMs?: number;
-};
+import type { DCResult } from "../../types/resultSchema.js";
+import type { RunOpts } from "../../types/runOptions.js";
 
 function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
@@ -63,7 +43,7 @@ function parseAllPrices(text: string) {
 export async function checkDynadot(
   domain: string,
   opts: RunOpts = {}
-): Promise<DDResult> {
+): Promise<DCResult> {
   const profileDir =
     opts.ephemeralProfile === false
       ? path.join(opts.profileBaseDir || "./profiles", "dynadot")

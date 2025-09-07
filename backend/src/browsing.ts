@@ -3,7 +3,7 @@ import { checkDynadot } from "./playwright/providers/dynadot.js";
 import { checkGoDaddy } from "./playwright/providers/godaddy.js";
 import { checkDomainHover } from "./playwright/providers/hover.js";
 import { checkDomainIONOS } from "./playwright/providers/ionos.js";
-import type { DCResult } from "./playwright/providers/namecheap.js";
+import type { DCResult } from "./types/resultSchema.js";
 import { checkNamecheap } from "./playwright/providers/namecheap.js";
 import { checkNetworkSolutions } from "./playwright/providers/networksolutions.js";
 import { checkDomainPorkbun } from "./playwright/providers/porkbun.js";

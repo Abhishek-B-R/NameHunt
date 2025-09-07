@@ -2,28 +2,8 @@ import fs from "fs-extra";
 import path from "path";
 import crypto from "crypto";
 import { newStealthContext } from "../browser.js";
-
-export type DCResult = {
-  ok: boolean;
-  domain: string;
-  available?: boolean;
-  isPremium?: boolean;
-  registrationPrice?: number;
-  renewalPrice?: number;
-  currency?: string;
-  error?: string;
-  rawText?: string;
-};
-
-type RunOpts = {
-  proxy?: { server: string; username?: string; password?: string };
-  headless?: boolean;
-  locale?: string;
-  timezoneId?: string;
-  ephemeralProfile?: boolean;
-  profileBaseDir?: string;
-  timeoutMs?: number;
-};
+import type { DCResult } from "../../types/resultSchema.js";
+import type { RunOpts } from "../../types/runOptions.js";
 
 function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
@@ -73,9 +53,6 @@ export async function checkDomainHover(
   const page = await ctx.newPage();
 
   try {
-    // Hover supports direct query via this search URL
-    // Examples:
-    // https://www.hover.com/domains/results?q=example.com
     const url = `https://www.hover.com/domains/results?q=${encodeURIComponent(
       domain
     )}`;

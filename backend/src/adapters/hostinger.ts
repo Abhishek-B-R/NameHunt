@@ -1,15 +1,14 @@
-// src/adapters/hostinger-dc.ts
 import { resolveDomainPricing } from "../providers/hostinger.js";
-import type { DCResult } from "../playwright/providers/namecheap.js";
+import type { DCResult } from "../types/resultSchema.js";
 
 type CatalogPrice = {
   id: string;
   name: string;
   currency: string;
-  price: number; // total for full period
-  first_period_price?: number | null; // discounted first term total
+  price: number; 
+  first_period_price?: number | null;
   period: number | string;
-  period_unit: string; // "year"
+  period_unit: string;
 };
 
 function toNumber(n: number | string | null | undefined): number | undefined {
@@ -19,7 +18,6 @@ function toNumber(n: number | string | null | undefined): number | undefined {
 }
 
 function pickOneYearPrices(prices: CatalogPrice[]) {
-  // Normalize period number and keep only yearly plans
   const yearly = prices
     .map((p) => ({
       ...p,
@@ -30,24 +28,18 @@ function pickOneYearPrices(prices: CatalogPrice[]) {
 
   if (yearly.length === 0) return { reg: undefined, renew: undefined, currency: undefined };
 
-  // Prefer the 1-year entry if present
   const oneYear = yearly.find((p) => p.periodNum === 1);
 
   if (oneYear) {
     const currency = oneYear.currency?.toUpperCase() || "USD";
-    // Registration: take discounted first year if available, else the total price for 1 year
     const registrationPrice =
       toNumber(oneYear.first_period_price) ?? toNumber(oneYear.price);
 
-    // Renewal: use non-discounted yearly rate
-    // For a 1y product, renewal is just its regular yearly price.
-    // If first_period_price exists and is lower, renewal should equal the regular price.
     const renewalPrice = toNumber(oneYear.price);
 
     return { reg: registrationPrice, renew: renewalPrice, currency };
   }
 
-  // No 1-year plan. Use the shortest yearly period and do math
   yearly.sort((a, b) => (a.periodNum as number) - (b.periodNum as number));
   const shortest = yearly[0];
   const currency = shortest.currency?.toUpperCase() || "USD";
@@ -55,12 +47,8 @@ function pickOneYearPrices(prices: CatalogPrice[]) {
   const total = toNumber(shortest.price);
   const periodYears = shortest.periodNum as number;
 
-  // Estimated per-year regular price
   const perYear = total && periodYears ? total / periodYears : undefined;
 
-  // Registration first-year price
-  // If a discounted first_period_price exists on the shortest plan, prorate it to a single year
-  // Otherwise use the per-year price
   const regFromFirst =
     toNumber(shortest.first_period_price) && periodYears
       ? (shortest.first_period_price as number) / periodYears
@@ -83,7 +71,6 @@ export async function checkHostingerDC(domainFqdn: string): Promise<DCResult> {
 
     const r = await resolveDomainPricing(sld, tld);
 
-    // Unavailable
     if ("available" in r && r.available === false) {
       return {
         ok: true,
@@ -94,7 +81,6 @@ export async function checkHostingerDC(domainFqdn: string): Promise<DCResult> {
       };
     }
 
-    // Premium
     if ("is_premium" in r && r.is_premium === true) {
       return {
         ok: true,
@@ -108,7 +94,6 @@ export async function checkHostingerDC(domainFqdn: string): Promise<DCResult> {
       };
     }
 
-    // Catalog-based standard domain
     if ("catalog" in r) {
       const prices = (r.catalog?.prices || []) as CatalogPrice[];
       const { reg, renew, currency } = pickOneYearPrices(prices);

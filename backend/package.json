@@ -1,38 +1,37 @@
 {
-  "name": "backend",
-  "module": "index.ts",
+  "name": "backend2",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
   "type": "module",
-  "private": true,
   "scripts": {
-    "dev": "pnpm run dev:index",
-    "build": "pnpm build",
-    "dev:gd": "tsx playwright/demo-godaddy.ts abhishek.tech",
-    "test:stealth": "tsx playwright/test.ts"
+    "dev": "npx tsc -b && node dist/index.js"
   },
-  "devDependencies": {
-    "@types/bun": "^1.2.20",
-    "tsx": "^4.20.5",
-    "typescript": "^5.9.2"
-  },
-  "peerDependencies": {
-    "typescript": "^5"
-  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.13.1",
   "dependencies": {
+    "@hono/node-server": "^1.19.1",
+    "@types/dotenv": "^8.2.3",
+    "@types/fs-extra": "^11.0.4",
     "axios": "^1.11.0",
-    "dotenv": "^17.2.1",
+    "crypto": "^1.0.1",
+    "dotenv": "^17.2.2",
     "fast-xml-parser": "^5.2.5",
-    "fingerprint-generator": "^2.1.70",
-    "fingerprint-injector": "^2.1.70",
+    "fingerprint-generator": "^2.1.72",
+    "fingerprint-injector": "^2.1.72",
     "fs-extra": "^11.3.1",
-    "hono": "^4.9.1",
-    "p-limit": "^7.1.1",
+    "hono": "^4.9.6",
     "playwright": "^1.55.0",
     "playwright-extra": "^4.3.6",
     "playwright-extra-plugin-stealth": "^0.0.1",
-    "puppeteer": "^24.17.1",
-    "puppeteer-extra": "^3.3.6",
-    "puppeteer-extra-plugin-stealth": "^2.11.2",
     "tough-cookie": "^6.0.0",
-    "zod": "^4.0.17"
+    "zod": "^4.1.5"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.1",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2"
   }
 }

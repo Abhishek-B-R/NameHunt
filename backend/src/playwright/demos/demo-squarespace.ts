@@ -1,8 +1,8 @@
-import { checkDomainPorkbun } from "./providers/porkbun.js";
+import { checkSquarespace } from "../providers/squarespace.js";
 
 (async () => {
   const domain = process.argv[2] || "abhishek.tech";
-  const res = await checkDomainPorkbun(domain, {
+  const res = await checkSquarespace(domain, {
     headless: false,
     ephemeralProfile: true,
   });

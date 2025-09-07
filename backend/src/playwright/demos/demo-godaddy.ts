@@ -1,4 +1,4 @@
-import { checkGoDaddy } from "./providers/godaddy.js";
+import { checkGoDaddy } from "../providers/godaddy.js";
 
 (async () => {
   const domain = process.argv[2] || "abhishek.tech";

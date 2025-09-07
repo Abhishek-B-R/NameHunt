@@ -177,10 +177,9 @@ export async function checkDomainWithPremium(domain: string, period = 1) {
   };
 }
 
-// Example usage
-(async () => {
-  const domain = "abhishekbr.com";
-  const period = 2;
-  const result = await checkDomainWithPremium(domain, period);
-  console.log(JSON.stringify(result, null, 2));
-})();
+// (async () => {
+//   const domain = "abhishekbr.com";
+//   const period = 2;
+//   const result = await checkDomainWithPremium(domain, period);
+//   console.log(JSON.stringify(result, null, 2));
+// })();

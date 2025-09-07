@@ -1,16 +1,5 @@
 import axios, { type AxiosInstance } from "axios";
-
-export interface SpaceshipDomainPricing {
-  ok: boolean;
-  domain: string;
-  available?: boolean;
-  isPremium?: boolean;
-  registrationPrice?: number;
-  renewalPrice?: number;
-  currency?: string;
-  error?: string;
-  raw?: unknown;
-}
+import type { SpaceshipDomainPricing } from "../types/spaceship.js";
 
 export class SpaceshipClient {
   private http: AxiosInstance;

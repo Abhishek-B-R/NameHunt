@@ -1,8 +1,8 @@
-import { checkSquarespace } from "./providers/squarespace.js";
+import { checkDomainNameCom } from "../providers/namecom.js";
 
 (async () => {
   const domain = process.argv[2] || "abhishek.tech";
-  const res = await checkSquarespace(domain, {
+  const res = await checkDomainNameCom(domain, {
     headless: false,
     ephemeralProfile: true,
   });

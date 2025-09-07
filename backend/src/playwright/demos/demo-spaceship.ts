@@ -1,4 +1,4 @@
-import { checkDomainSpaceship } from "./providers/spaceship.js";
+import { checkDomainSpaceship } from "../providers/spaceship.js";
 
 (async () => {
   const domain = process.argv[2] || "abhishekbr.com";

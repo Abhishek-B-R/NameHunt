@@ -1,15 +1,5 @@
 import axios from "axios";
-
-export interface DynadotDomainPricing {
-  ok: boolean;
-  domain: string;
-  available?: boolean;
-  isPremium?: boolean;
-  registrationPrice?: number;
-  renewalPrice?: number;
-  currency?: string;
-  error?: string;
-}
+import type { DynadotDomainPricing } from "../types/dynadot.js";
 
 export class DynadotClient {
   private apiKey: string;
@@ -21,9 +11,6 @@ export class DynadotClient {
     this.baseUrl = baseUrl;
   }
 
-  /**
-   * Check domain availability and pricing
-   */
   async getDomainPricing(domain: string): Promise<DynadotDomainPricing> {
     try {
       const resp = await axios.get(this.baseUrl, {
@@ -58,7 +45,6 @@ export class DynadotClient {
   }
 }
 
-// Example usage
 // (async () => {
 //   const dynadot = new DynadotClient(process.env.DYNADOT_API_KEY || "");
 

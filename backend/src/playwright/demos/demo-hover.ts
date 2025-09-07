@@ -1,4 +1,4 @@
-import { checkDomainHover } from "./providers/hover.js";
+import { checkDomainHover } from "../providers/hover.js";
 
 (async () => {
   const domain = process.argv[2] || "abhishekbr.com";

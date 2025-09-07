@@ -1,4 +1,4 @@
-import { checkNamecheap } from "./providers/namecheap.js";
+import { checkNamecheap } from "../providers/namecheap.js";
 
 (async () => {
   const domain = process.argv[2] || "abhishekbr.dev";

@@ -1,15 +1,5 @@
 import axios, { type AxiosInstance } from "axios";
-
-export interface DomainPricingResult {
-  ok: boolean;
-  domain: string;
-  available?: boolean;
-  isPremium?: boolean;
-  registrationPrice?: number;
-  renewalPrice?: number;
-  currency?: string;
-  error?: string;
-}
+import type { DomainPricingResult } from "../types/ionos.js";
 
 export class IonosClient {
   private http: AxiosInstance;
@@ -94,7 +84,6 @@ export class IonosClient {
   }
 }
 
-// Example usage
 // (async () => {
 //   const ionos = new IonosClient();
 

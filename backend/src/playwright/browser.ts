@@ -1,16 +1,7 @@
 import { chromium, type BrowserContext } from "playwright";
 import { FingerprintGenerator } from "fingerprint-generator";
 import { FingerprintInjector } from "fingerprint-injector";
-
-export type ProxyOpts = { server: string; username?: string; password?: string };
-export type StealthOpts = {
-  profileDir: string;
-  headless?: boolean;
-  locale?: string;
-  timezoneId?: string;
-  proxy?: ProxyOpts;
-  userAgent?: string;
-};
+import type { ProxyOpts,StealthOpts } from "../types/browserTypes.js";
 
 function randInt(min: number, max: number) {
   return Math.floor(Math.random() * (max - min + 1)) + min;

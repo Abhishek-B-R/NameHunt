@@ -1,17 +1,5 @@
 import axios from "axios";
-
-export interface NameSiloDomainPricing {
-  ok: boolean;
-  domain: string;
-  available?: boolean;
-  isPremium?: boolean;
-  registrationPrice?: number;
-  renewalPrice?: number;
-  currency?: string;
-  error?: string;
-  rawText?: unknown;
-}
-
+import type { NameSiloDomainPricing } from "../types/namesilo.js";
 export class NameSiloClient {
   private apiKey: string;
   private baseUrl: string;

@@ -13,7 +13,6 @@ app.use("*", prettyJSON());
 
 app.get("/health", (c) => c.json({ ok: true }));
 
-// Existing single-provider route
 app.post("/search", async (c) => {
   try {
     const body = await c.req.json<{
@@ -56,7 +55,6 @@ app.post("/search", async (c) => {
   }
 });
 
-// New multi-provider fan-out route
 app.post("/search/all", async (c) => {
   try {
     const body = await c.req.json<{
@@ -132,6 +130,93 @@ app.post("/search/all", async (c) => {
   } catch (e) {
     return c.json({ ok: false, error: "Invalid JSON payload" }, 400);
   }
+});
+
+app.get("/search/stream", async (c) => {
+  const url = new URL(c.req.url);
+  const domain = (url.searchParams.get("domain") || "").trim();
+  const timeoutMs = Number(url.searchParams.get("timeoutMs") || 45000);
+  const providersParam = url.searchParams.get("providers") || "";
+  const allProviders = Object.values(ProviderNames);
+  const providers = providersParam
+    ? providersParam
+        .split(",")
+        .map((p) => p.trim().toLowerCase())
+        .filter((p) => p.length > 0)
+    : allProviders;
+
+  if (!domain) {
+    return c.json({ ok: false, error: 'Query param "domain" is required' }, 400);
+  }
+  const invalid = providers.filter((p) => !allProviders.includes(p as ProviderNames));
+  if (invalid.length) {
+    return c.json(
+      {
+        ok: false,
+        error: `Invalid providers: ${invalid.join(", ")}. Allowed: ${allProviders.join(", ")}`,
+      },
+      400
+    );
+  }
+
+  // Hono SSE via manual stream
+  c.header("Content-Type", "text/event-stream");
+  c.header("Cache-Control", "no-cache");
+  c.header("Connection", "keep-alive");
+  c.header("X-Accel-Buffering", "no"); // for nginx
+
+  const stream = new ReadableStream({
+    start(controller) {
+      const write = (event: string, data: any) => {
+        const payload = typeof data === "string" ? data : JSON.stringify(data);
+        controller.enqueue(
+          new TextEncoder().encode(`event: ${event}\ndata: ${payload}\n\n`)
+        );
+      };
+
+      // Send a hello with metadata
+      write("init", { ok: true, domain, providers, timeoutMs, ts: Date.now() });
+
+      // Run providers in parallel
+      const abort = new AbortController();
+      const tasks = providers.map(async (p) => {
+        try {
+          const res = await runBrowsingProvider(p as ProviderNames, domain, {
+            timeoutMs,
+            signal: abort.signal as any,
+          });
+          write("result", { provider: p, result: res, ts: Date.now() });
+        } catch (err: any) {
+          write("result", {
+            provider: p,
+            result: {
+              ok: false,
+              domain,
+              error:
+                err?.response?.data?.message ||
+                err?.message ||
+                "Provider failed",
+            },
+            ts: Date.now(),
+          });
+        }
+      });
+
+      // When all finish, send done and close
+      Promise.allSettled(tasks)
+        .then(() => {
+          write("done", { ok: true, ts: Date.now() });
+        })
+        .finally(() => {
+          controller.close();
+        });
+    },
+    cancel() {
+      // client disconnected
+    },
+  });
+
+  return new Response(stream);
 });
 
 // Start server

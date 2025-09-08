@@ -81,7 +81,7 @@ export type ProviderKey = keyof typeof providerMap;
 export async function runBrowsingProvider(
   provider: ProviderKey,
   domain: string,
-  opts?: { timeoutMs?: number }
+  opts?: { timeoutMs?: number, signal?: AbortSignal }
 ): Promise<DCResult> {
   const run = providerMap[provider];
   if (!run) {

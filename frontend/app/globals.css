@@ -135,20 +135,20 @@
     background: linear-gradient(135deg, #0a2540 0%, #064663 100%);
   }
 
-  /* Glassmorphism effects for light theme */
+  /* Enhanced glassmorphism effects with better contrast for light theme */
   .glass-light {
     backdrop-filter: blur(16px);
-    background-color: rgba(255, 255, 255, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    background-color: rgba(255, 255, 255, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
   }
 
-  /* Glassmorphism effects for dark theme */
+  /* Enhanced glassmorphism effects with better contrast for dark theme */
   .glass-dark {
     backdrop-filter: blur(16px);
-    background-color: rgba(31, 41, 55, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    background-color: rgba(31, 41, 55, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   }
 
   /* Universal glass card */
@@ -157,11 +157,11 @@
   }
 
   .light .glass-card {
-    @apply bg-white/40 border-white/30 shadow-lg;
+    @apply bg-white/50 border-white/40 shadow-lg;
   }
 
   .dark .glass-card {
-    @apply bg-white/10 border-white/20 shadow-2xl;
+    @apply bg-white/15 border-white/25 shadow-2xl;
   }
 
   /* Glass input styles */
@@ -170,11 +170,11 @@
   }
 
   .light .glass-input {
-    @apply bg-white/50 border-white/40 text-gray-800 placeholder:text-gray-600;
+    @apply bg-white/60 border-white/50 text-gray-900 placeholder:text-gray-700;
   }
 
   .dark .glass-input {
-    @apply bg-white/10 border-white/20 text-gray-100 placeholder:text-gray-300;
+    @apply bg-white/15 border-white/25 text-gray-100 placeholder:text-gray-300;
   }
 
   /* Interactive elements */
@@ -187,11 +187,11 @@
   }
 
   .light .interactive-card:hover {
-    @apply shadow-xl bg-white/50;
+    @apply shadow-xl bg-white/60;
   }
 
   .dark .interactive-card:hover {
-    @apply shadow-2xl bg-white/15;
+    @apply shadow-2xl bg-white/20;
   }
 
   /* Button styles */
@@ -202,6 +202,30 @@
   /* Teal accent button variant */
   .theme-button-teal {
     @apply bg-teal-600 hover:bg-teal-500 text-white shadow-lg hover:shadow-xl transition-all duration-300 ease-in-out hover:scale-105;
+  }
+
+  /* Added high contrast text utilities for accessibility */
+  .text-high-contrast {
+    @apply text-gray-900 dark:text-gray-100;
+  }
+
+  .text-medium-contrast {
+    @apply text-gray-800 dark:text-gray-200;
+  }
+
+  .text-subtle-contrast {
+    @apply text-gray-700 dark:text-gray-300;
+  }
+
+  /* Enhanced gradient text with better fallback colors */
+  .gradient-text {
+    @apply bg-gradient-to-r from-teal-600 to-blue-600 dark:from-teal-400 dark:to-blue-400 bg-clip-text text-transparent;
+    /* Fallback for browsers that don't support bg-clip-text */
+    color: #0d9488;
+  }
+
+  .dark .gradient-text {
+    color: #2dd4bf;
   }
 
   /* Loading skeleton styles */

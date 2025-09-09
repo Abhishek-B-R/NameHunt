@@ -1,8 +1,9 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useRef, useCallback, useMemo } from "react"
+import { validateDomain } from "@/lib/domain-validation"
 
-interface DomainResult {
+export interface DomainResult {
   provider: string
   ok: boolean
   domain: string
@@ -23,6 +24,29 @@ interface SearchState {
   progress: number
 }
 
+type InitEvent = {
+  ok: boolean
+  domain: string
+  providers: string[]
+  timeoutMs: number
+  ts?: number
+}
+
+type ResultEvent = {
+  provider: string
+  result: {
+    ok: boolean
+    domain: string
+    available?: boolean
+    registrationPrice?: number
+    renewalPrice?: number
+    currency?: string
+    rawText?: unknown
+    error?: unknown
+  }
+  ts?: number
+}
+
 export function useDomainSearch() {
   const [state, setState] = useState<SearchState>({
     results: [],
@@ -33,27 +57,87 @@ export function useDomainSearch() {
   })
 
   const eventSourceRef = useRef<EventSource | null>(null)
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const expectedProviders = ["godaddy", "namecheap", "squarespace", "hostinger", "porkbun", "cloudflare", "google"]
+  const hardTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const idleTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const initProvidersRef = useRef<string[] | null>(null)
+
+  const requestedProviders = useMemo(
+    () => [
+      "godaddy",
+      "namecheap",
+      "squarespace",
+      "hostinger",
+      "networksolutions",
+      "namecom",
+      "porkbun",
+      "ionos",
+      "hover",
+      "dynadot",
+      "namesilo",
+      "spaceship",
+    ],
+    []
+  )
 
   const cleanup = useCallback(() => {
     if (eventSourceRef.current) {
       eventSourceRef.current.close()
       eventSourceRef.current = null
     }
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current)
-      timeoutRef.current = null
+    if (hardTimeoutRef.current) {
+      clearTimeout(hardTimeoutRef.current)
+      hardTimeoutRef.current = null
     }
+    if (idleTimeoutRef.current) {
+      clearTimeout(idleTimeoutRef.current)
+      idleTimeoutRef.current = null
+    }
+    initProvidersRef.current = null
   }, [])
+
+  const safeString = (val: unknown): string | undefined => {
+    if (val == null) return undefined
+    if (typeof val === "string") return val
+    try {
+      return JSON.stringify(val)
+    } catch {
+      return undefined
+    }
+  }
+
+  const bumpIdleTimer = useCallback(() => {
+    if (idleTimeoutRef.current) clearTimeout(idleTimeoutRef.current)
+    idleTimeoutRef.current = setTimeout(() => {
+      console.warn("[v0] SSE idle timeout, closing stream")
+      setState((prev) => ({
+        ...prev,
+        isLoading: false,
+        isComplete: true,
+        error:
+          prev.results.length === 0 ? "No response from server" : prev.error,
+      }))
+      cleanup()
+    }, 30000)
+  }, [cleanup])
 
   const startSearch = useCallback(
     (domain: string) => {
-      if (!domain.trim()) return
+      const q = domain?.trim() ?? ""
+      if (!q) return
+
+      const validation = validateDomain(q)
+      if (!validation.success) {
+        setState({
+          results: [],
+          isLoading: false,
+          isComplete: true,
+          error: validation.error || "Invalid domain format",
+          progress: 0,
+        })
+        return
+      }
 
       cleanup()
-
       setState({
         results: [],
         isLoading: true,
@@ -62,36 +146,85 @@ export function useDomainSearch() {
         progress: 0,
       })
 
-      const providers = expectedProviders.join(",")
-      const url = `http://localhost:8080/search/stream?domain=${encodeURIComponent(domain)}&timeoutMs=45000&providers=${providers}`
+      const validatedDomain = validation.data!
+      const providers = requestedProviders.join(",")
+      const url = `http://localhost:8080/search/stream?domain=${encodeURIComponent(
+        validatedDomain
+      )}&timeoutMs=120000&providers=${providers}`
 
       try {
-        const eventSource = new EventSource(url)
-        eventSourceRef.current = eventSource
+        const es = new EventSource(url)
+        eventSourceRef.current = es
 
-        eventSource.onopen = () => {
-          console.log("[v0] SSE connection opened successfully")
-          setState((prev) => ({ ...prev, error: null }))
+        es.onopen = () => {
+          console.log("[v0] SSE connection opened")
+          setState((p) => ({ ...p, error: null }))
+          bumpIdleTimer()
         }
 
-        eventSource.onmessage = (event) => {
+        // Your server uses named events; keep default messages only for diagnostics
+        es.onmessage = (event) => {
+          console.log("[v0] default message event:", event.data)
+          bumpIdleTimer()
+        }
+
+        es.addEventListener("init", (event) => {
           try {
-            const data = JSON.parse(event.data)
-            const provider = Object.keys(data)[0]
-            const result: DomainResult = {
+            const data = JSON.parse((event as MessageEvent).data) as InitEvent
+            initProvidersRef.current = Array.isArray(data.providers)
+              ? data.providers
+              : null
+            console.log("[v0] init:", data)
+            bumpIdleTimer()
+          } catch (e) {
+            console.error("[v0] Error parsing init:", e)
+          }
+        })
+
+        es.addEventListener("result", (event) => {
+          try {
+            const data = JSON.parse(
+              (event as MessageEvent).data
+            ) as ResultEvent
+
+            const provider = data.provider
+            const merged: DomainResult = {
               provider,
-              timestamp: Date.now(),
-              ...data[provider],
+              timestamp: data.ts ?? Date.now(),
+              ok: !!data.result.ok,
+              domain: String(data.result.domain),
+              available:
+                typeof data.result.available === "boolean"
+                  ? data.result.available
+                  : undefined,
+              registrationPrice:
+                typeof data.result.registrationPrice === "number"
+                  ? data.result.registrationPrice
+                  : undefined,
+              renewalPrice:
+                typeof data.result.renewalPrice === "number"
+                  ? data.result.renewalPrice
+                  : undefined,
+              currency:
+                typeof data.result.currency === "string"
+                  ? data.result.currency
+                  : undefined,
+              rawText: safeString(data.result.rawText),
+              error: safeString(data.result.error),
             }
 
-            console.log(`[v0] Received result for ${provider}:`, result)
-
             setState((prev) => {
-              const newResults = prev.results.find((r) => r.provider === provider)
-                ? prev.results.map((r) => (r.provider === provider ? result : r))
-                : [...prev.results, result]
+              const idx = prev.results.findIndex((r) => r.provider === provider)
+              const newResults =
+                idx >= 0
+                  ? prev.results.map((r, i) => (i === idx ? merged : r))
+                  : [...prev.results, merged]
 
-              const progress = Math.round((newResults.length / expectedProviders.length) * 100)
+              const total =
+                initProvidersRef.current?.length ?? requestedProviders.length
+              const progress = Math.round(
+                Math.min(100, (newResults.length / Math.max(1, total)) * 100)
+              )
 
               return {
                 ...prev,
@@ -100,16 +233,43 @@ export function useDomainSearch() {
                 error: null,
               }
             })
-          } catch (error) {
-            console.error("[v0] Error parsing SSE data:", error)
+            bumpIdleTimer()
+          } catch (e) {
+            console.error("[v0] Error parsing result event:", e)
             setState((prev) => ({
               ...prev,
               error: "Failed to parse server response",
             }))
           }
-        }
+        })
 
-        eventSource.onerror = (event) => {
+        es.addEventListener("done", () => {
+          console.log("[v0] done")
+          setState((prev) => ({
+            ...prev,
+            isLoading: false,
+            isComplete: true,
+            progress: 100,
+          }))
+          cleanup()
+        })
+
+        // Optional server-sent error payload
+        es.addEventListener("error", (ev: Event) => {
+          const me = ev as MessageEvent
+          if (me.data) {
+            console.error("[v0] server error:", me.data)
+            setState((prev) => ({
+              ...prev,
+              error:
+                typeof me.data === "string"
+                  ? me.data
+                  : "Server error occurred",
+            }))
+          }
+        })
+
+        es.onerror = (event) => {
           console.error("[v0] SSE connection error:", event)
           setState((prev) => ({
             ...prev,
@@ -120,36 +280,20 @@ export function useDomainSearch() {
           cleanup()
         }
 
-        eventSource.addEventListener("end", () => {
-          console.log("[v0] Search stream completed")
+        // Hard failsafe if done never arrives
+        hardTimeoutRef.current = setTimeout(() => {
+          console.log("[v0] hard timeout reached")
           setState((prev) => ({
             ...prev,
             isLoading: false,
             isComplete: true,
-            progress: 100,
+            error:
+              prev.results.length === 0
+                ? "Search timed out with no results"
+                : prev.error,
           }))
           cleanup()
-        })
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        eventSource.addEventListener("error", (event: any) => {
-          console.error("[v0] Server error event:", event.data)
-          setState((prev) => ({
-            ...prev,
-            error: event.data || "Server error occurred",
-          }))
-        })
-
-        timeoutRef.current = setTimeout(() => {
-          console.log("[v0] Search timeout reached, completing...")
-          setState((prev) => ({
-            ...prev,
-            isLoading: false,
-            isComplete: true,
-            error: prev.results.length === 0 ? "Search timed out with no results" : null,
-          }))
-          cleanup()
-        }, 50000) // 50 second timeout
+        }, 50000)
       } catch (error) {
         console.error("[v0] Failed to create SSE connection:", error)
         setState((prev) => ({
@@ -159,11 +303,11 @@ export function useDomainSearch() {
         }))
       }
     },
-    [cleanup, expectedProviders],
+    [cleanup, bumpIdleTimer, requestedProviders]
   )
 
   const cancelSearch = useCallback(() => {
-    console.log("[v0] Search cancelled by user")
+    console.log("[v0] Search cancelled")
     setState((prev) => ({
       ...prev,
       isLoading: false,
@@ -174,7 +318,6 @@ export function useDomainSearch() {
 
   const getConnectionStatus = useCallback(() => {
     if (!eventSourceRef.current) return "disconnected"
-
     switch (eventSourceRef.current.readyState) {
       case EventSource.CONNECTING:
         return "connecting"
@@ -187,16 +330,13 @@ export function useDomainSearch() {
     }
   }, [])
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return cleanup
-  }, [cleanup])
+  useEffect(() => cleanup, [cleanup])
 
   return {
     ...state,
     startSearch,
     cancelSearch,
     connectionStatus: getConnectionStatus(),
-    expectedProviders,
+    expectedProviders: initProvidersRef.current ?? requestedProviders,
   }
 }

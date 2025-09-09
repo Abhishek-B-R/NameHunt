@@ -1,20 +1,42 @@
 "use client"
 
+import type React from "react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Search, Zap, Globe, DollarSign } from "lucide-react"
+import { Search, Zap, Globe, DollarSign, AlertTriangle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { validateDomain } from "@/lib/domain-validation"
 
 export default function HomePage() {
   const [domain, setDomain] = useState("")
+  const [validationError, setValidationError] = useState<string | null>(null)
   const router = useRouter()
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
-    if (domain.trim()) {
-      router.push(`/search?q=${encodeURIComponent(domain.trim())}`)
+
+    if (!domain.trim()) {
+      setValidationError("Please enter a domain name")
+      return
+    }
+
+    const validation = validateDomain(domain.trim())
+    if (!validation.success) {
+      setValidationError(validation.error || "Invalid domain format")
+      return
+    }
+
+    setValidationError(null)
+    router.push(`/search?q=${encodeURIComponent(validation.data!)}`)
+  }
+
+  const handleDomainChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setDomain(e.target.value)
+    if (validationError) {
+      setValidationError(null)
     }
   }
 
@@ -43,19 +65,17 @@ export default function HomePage() {
             <div className="p-2 sm:p-3 glass-card rounded-xl sm:rounded-2xl">
               <Globe className="w-6 h-6 sm:w-8 sm:h-8 text-teal-600 dark:text-teal-400" />
             </div>
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold bg-gradient-to-r from-teal-600 to-blue-600 dark:from-teal-400 dark:to-blue-400 bg-clip-text text-transparent">
-              NameHunt
-            </h1>
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold gradient-text text-high-contrast">NameHunt</h1>
           </div>
-          <p className="text-xl sm:text-2xl text-gray-800 dark:text-gray-100 font-medium mb-2">
+          <p className="text-xl sm:text-2xl text-high-contrast font-medium mb-2">
             Find the perfect domain at the best price
           </p>
-          <p className="text-base sm:text-lg text-gray-700 dark:text-gray-300 max-w-2xl mx-auto px-4">
+          <p className="text-base sm:text-lg text-medium-contrast max-w-2xl mx-auto px-4">
             Compare prices across multiple registrars in real-time and discover your ideal domain name instantly
           </p>
         </div>
 
-        <div className="w-full max-w-2xl animate-scale-in border-2 dark:border-0 border-gray-300 rounded-2xl sm:rounded-3xl" style={{ animationDelay: "0.3s" }}>
+        <div className="w-full max-w-2xl animate-scale-in" style={{ animationDelay: "0.3s" }}>
           <div className="glass-card rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-12">
             <form onSubmit={handleSearch} className="space-y-4 sm:space-y-6">
               <div className="relative">
@@ -64,11 +84,19 @@ export default function HomePage() {
                   type="text"
                   placeholder="Enter domain name (e.g., example.com)"
                   value={domain}
-                  onChange={(e) => setDomain(e.target.value)}
+                  onChange={handleDomainChange}
                   className="glass-input pl-10 sm:pl-14 pr-4 py-4 sm:py-6 text-base sm:text-lg rounded-xl sm:rounded-2xl border-0"
                   autoFocus
                 />
               </div>
+
+              {validationError && (
+                <Alert className="glass-card border-red-200 dark:border-red-800">
+                  <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
+                  <AlertDescription className="text-red-700 dark:text-red-300">{validationError}</AlertDescription>
+                </Alert>
+              )}
+
               <Button
                 type="submit"
                 size="lg"
@@ -88,10 +116,8 @@ export default function HomePage() {
             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg sm:rounded-xl flex items-center justify-center mx-auto mb-3 sm:mb-4">
               <Zap className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </div>
-            <h3 className="text-base sm:text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2">
-              Real-time Results
-            </h3>
-            <p className="text-gray-700 dark:text-gray-300 text-sm sm:text-base">
+            <h3 className="text-base sm:text-lg font-semibold text-high-contrast mb-2">Real-time Results</h3>
+            <p className="text-medium-contrast text-sm sm:text-base">
               Get live pricing from multiple registrars as they stream in
             </p>
           </div>
@@ -100,11 +126,9 @@ export default function HomePage() {
             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-500 to-teal-500 rounded-lg sm:rounded-xl flex items-center justify-center mx-auto mb-3 sm:mb-4">
               <Globe className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </div>
-            <h3 className="text-base sm:text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2">
-              Multiple Providers
-            </h3>
-            <p className="text-gray-700 dark:text-gray-300 text-sm sm:text-base">
-              Compare GoDaddy, Namecheap, Squarespace, and more
+            <h3 className="text-base sm:text-lg font-semibold text-high-contrast mb-2">Multiple Providers</h3>
+            <p className="text-medium-contrast text-sm sm:text-base">
+              Compare GoDaddy, Namecheap, Squarespace, Hostinger, and 8 more providers
             </p>
           </div>
 
@@ -112,8 +136,8 @@ export default function HomePage() {
             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-teal-500 to-blue-500 rounded-lg sm:rounded-xl flex items-center justify-center mx-auto mb-3 sm:mb-4">
               <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </div>
-            <h3 className="text-base sm:text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2">Best Prices</h3>
-            <p className="text-gray-700 dark:text-gray-300 text-sm sm:text-base">
+            <h3 className="text-base sm:text-lg font-semibold text-high-contrast mb-2">Best Prices</h3>
+            <p className="text-medium-contrast text-sm sm:text-base">
               Find the lowest registration and renewal costs instantly
             </p>
           </div>

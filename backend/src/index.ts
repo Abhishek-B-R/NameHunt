@@ -133,22 +133,24 @@ app.post("/search/all", async (c) => {
 });
 
 app.get("/search/stream", async (c) => {
-  const url = new URL(c.req.url);
-  const domain = (url.searchParams.get("domain") || "").trim();
-  const timeoutMs = Number(url.searchParams.get("timeoutMs") || 45000);
-  const providersParam = url.searchParams.get("providers") || "";
-  const allProviders = Object.values(ProviderNames);
+  const url = new URL(c.req.url)
+  const domain = (url.searchParams.get("domain") || "").trim()
+  const timeoutMs = Number(url.searchParams.get("timeoutMs") || 45000)
+  const providersParam = url.searchParams.get("providers") || ""
+  const allProviders = Object.values(ProviderNames)
   const providers = providersParam
     ? providersParam
         .split(",")
         .map((p) => p.trim().toLowerCase())
         .filter((p) => p.length > 0)
-    : allProviders;
+    : allProviders
 
   if (!domain) {
-    return c.json({ ok: false, error: 'Query param "domain" is required' }, 400);
+    return c.json({ ok: false, error: 'Query param "domain" is required' }, 400)
   }
-  const invalid = providers.filter((p) => !allProviders.includes(p as ProviderNames));
+  const invalid = providers.filter(
+    (p) => !allProviders.includes(p as ProviderNames)
+  )
   if (invalid.length) {
     return c.json(
       {
@@ -156,38 +158,50 @@ app.get("/search/stream", async (c) => {
         error: `Invalid providers: ${invalid.join(", ")}. Allowed: ${allProviders.join(", ")}`,
       },
       400
-    );
+    )
   }
 
-  // Hono SSE via manual stream
-  c.header("Content-Type", "text/event-stream");
-  c.header("Cache-Control", "no-cache");
-  c.header("Connection", "keep-alive");
-  c.header("X-Accel-Buffering", "no"); // for nginx
+  const headers = new Headers()
+  headers.set("Content-Type", "text/event-stream")
+  headers.set("Cache-Control", "no-cache")
+  headers.set("Connection", "keep-alive")
+  headers.set("Access-Control-Allow-Origin", "http://localhost:3000")
+  headers.set("X-Accel-Buffering", "no")
+
+  const encoder = new TextEncoder()
 
   const stream = new ReadableStream({
     start(controller) {
-      const write = (event: string, data: any) => {
-        const payload = typeof data === "string" ? data : JSON.stringify(data);
+      const send = (event: string, data: unknown) => {
+        controller.enqueue(encoder.encode(`event: ${event}\n`))
         controller.enqueue(
-          new TextEncoder().encode(`event: ${event}\ndata: ${payload}\n\n`)
-        );
-      };
+          encoder.encode(
+            `data: ${typeof data === "string" ? data : JSON.stringify(data)}\n\n`
+          )
+        )
+      }
 
-      // Send a hello with metadata
-      write("init", { ok: true, domain, providers, timeoutMs, ts: Date.now() });
+      // reconnection hint
+      controller.enqueue(encoder.encode(`retry: 5000\n\n`))
 
-      // Run providers in parallel
-      const abort = new AbortController();
+      // heartbeat
+      const heartbeat = setInterval(() => {
+        controller.enqueue(encoder.encode(`: keep-alive\n\n`))
+      }, 10000)
+
+      // init event
+      send("init", { ok: true, domain, providers, timeoutMs, ts: Date.now() })
+
+      const abort = new AbortController()
       const tasks = providers.map(async (p) => {
         try {
           const res = await runBrowsingProvider(p as ProviderNames, domain, {
             timeoutMs,
             signal: abort.signal as any,
-          });
-          write("result", { provider: p, result: res, ts: Date.now() });
+          })
+          send("result", { provider: p, result: res, ts: Date.now() })
         } catch (err: any) {
-          write("result", {
+          send("result", {
             provider: p,
             result: {
               ok: false,
@@ -198,26 +212,26 @@ app.get("/search/stream", async (c) => {
                 "Provider failed",
             },
             ts: Date.now(),
-          });
+          })
         }
-      });
+      })
 
-      // When all finish, send done and close
       Promise.allSettled(tasks)
         .then(() => {
-          write("done", { ok: true, ts: Date.now() });
+          send("done", { ok: true, ts: Date.now() })
         })
         .finally(() => {
-          controller.close();
-        });
+          clearInterval(heartbeat)
+          controller.close()
+        })
     },
     cancel() {
       // client disconnected
     },
-  });
+  })
 
-  return new Response(stream);
-});
+  return new Response(stream, { headers })
+})
 
 // Start server
 const port = Number(process.env.PORT || 8080);

@@ -108,7 +108,7 @@ export function useDomainSearch() {
   const bumpIdleTimer = useCallback(() => {
     if (idleTimeoutRef.current) clearTimeout(idleTimeoutRef.current)
     idleTimeoutRef.current = setTimeout(() => {
-      console.warn("[v0] SSE idle timeout, closing stream")
+      console.warn("SSE idle timeout, closing stream")
       setState((prev) => ({
         ...prev,
         isLoading: false,
@@ -157,14 +157,14 @@ export function useDomainSearch() {
         eventSourceRef.current = es
 
         es.onopen = () => {
-          console.log("[v0] SSE connection opened")
+          console.log("SSE connection opened")
           setState((p) => ({ ...p, error: null }))
           bumpIdleTimer()
         }
 
         // Your server uses named events; keep default messages only for diagnostics
         es.onmessage = (event) => {
-          console.log("[v0] default message event:", event.data)
+          console.log("default message event:", event.data)
           bumpIdleTimer()
         }
 
@@ -174,10 +174,10 @@ export function useDomainSearch() {
             initProvidersRef.current = Array.isArray(data.providers)
               ? data.providers
               : null
-            console.log("[v0] init:", data)
+            console.log("init:", data)
             bumpIdleTimer()
           } catch (e) {
-            console.error("[v0] Error parsing init:", e)
+            console.error("Error parsing init:", e)
           }
         })
 
@@ -235,7 +235,7 @@ export function useDomainSearch() {
             })
             bumpIdleTimer()
           } catch (e) {
-            console.error("[v0] Error parsing result event:", e)
+            console.error("Error parsing result event:", e)
             setState((prev) => ({
               ...prev,
               error: "Failed to parse server response",
@@ -244,7 +244,7 @@ export function useDomainSearch() {
         })
 
         es.addEventListener("done", () => {
-          console.log("[v0] done")
+          console.log("done")
           setState((prev) => ({
             ...prev,
             isLoading: false,
@@ -258,7 +258,7 @@ export function useDomainSearch() {
         es.addEventListener("error", (ev: Event) => {
           const me = ev as MessageEvent
           if (me.data) {
-            console.error("[v0] server error:", me.data)
+            console.error("server error:", me.data)
             setState((prev) => ({
               ...prev,
               error:
@@ -270,7 +270,7 @@ export function useDomainSearch() {
         })
 
         es.onerror = (event) => {
-          console.error("[v0] SSE connection error:", event)
+          console.error("SSE connection error:", event)
           setState((prev) => ({
             ...prev,
             isLoading: false,
@@ -282,7 +282,7 @@ export function useDomainSearch() {
 
         // Hard failsafe if done never arrives
         hardTimeoutRef.current = setTimeout(() => {
-          console.log("[v0] hard timeout reached")
+          console.log("hard timeout reached")
           setState((prev) => ({
             ...prev,
             isLoading: false,
@@ -295,7 +295,7 @@ export function useDomainSearch() {
           cleanup()
         }, 50000)
       } catch (error) {
-        console.error("[v0] Failed to create SSE connection:", error)
+        console.error("Failed to create SSE connection:", error)
         setState((prev) => ({
           ...prev,
           isLoading: false,
@@ -307,7 +307,7 @@ export function useDomainSearch() {
   )
 
   const cancelSearch = useCallback(() => {
-    console.log("[v0] Search cancelled")
+    console.log("Search cancelled")
     setState((prev) => ({
       ...prev,
       isLoading: false,

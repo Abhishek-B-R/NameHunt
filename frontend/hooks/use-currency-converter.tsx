@@ -36,7 +36,7 @@ export function useCurrencyConverter(): CurrencyConverterHook {
       setLastUpdated(new Date())
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch exchange rates")
-      console.error("[v0] Currency conversion error:", err)
+      console.error("Currency conversion error:", err)
     } finally {
       setIsLoading(false)
     }
@@ -76,7 +76,7 @@ export function useCurrencyConverter(): CurrencyConverterHook {
         const convertedPrice = usdPrice * toRate
         return Math.round(convertedPrice * 100) / 100
       } catch (err) {
-        console.error("[v0] Price conversion error:", err)
+        console.error("Price conversion error:", err)
         return price
       }
     },

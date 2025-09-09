@@ -1,28 +1,21 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Montserrat } from "next/font/google"
-import { Open_Sans } from "next/font/google"
-import "./globals.css"
+import { Poppins } from "next/font/google"
+// import { Analytics } from "@vercel/analytics/next"
+import { Suspense } from "react"
 import { ThemeProvider } from "@/components/theme-provider"
+import "./globals.css"
 
-const montserrat = Montserrat({
+const poppins = Poppins({
   subsets: ["latin"],
-  display: "swap",
-  variable: "--font-montserrat",
-  weight: ["400", "600", "700", "900"],
-})
-
-const openSans = Open_Sans({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-open-sans",
-  weight: ["400", "500", "600"],
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-poppins",
 })
 
 export const metadata: Metadata = {
-  title: "NameHunt - Find Your Perfect Domain at the Best Price",
+  title: "NameHunt - Find the Perfect Domain at the Best Price",
   description:
-    "Compare domain prices across multiple registrars instantly. Save money and time with NameHunt - your domain search companion.",
+    "Compare domain prices across multiple registrars in real-time. Find your perfect domain name with NameHunt.",
   generator: "v0.app",
 }
 
@@ -32,10 +25,11 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={`${montserrat.variable} ${openSans.variable} antialiased`} suppressHydrationWarning>
-      <body className="font-sans">
+    <html lang="en" suppressHydrationWarning>
+      <body className={poppins.className} suppressHydrationWarning>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          {children}
+          <Suspense fallback={null}>{children}</Suspense>
+          {/* <Analytics /> */}
         </ThemeProvider>
       </body>
     </html>

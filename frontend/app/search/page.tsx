@@ -3,16 +3,7 @@
 import type React from "react"
 import { useState, useEffect, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
-import {
-  ArrowLeft,
-  Search,
-  CheckCircle,
-  RefreshCw,
-  Clock,
-  Wifi,
-  WifiOff,
-  AlertTriangle,
-} from "lucide-react"
+import { ArrowLeft, Search, CheckCircle, RefreshCw, Clock, Wifi, WifiOff, AlertTriangle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Progress } from "@/components/ui/progress"
@@ -29,13 +20,13 @@ function SearchResultsContent() {
   const router = useRouter()
   const [domain, setDomain] = useState(searchParams.get("q") || "")
   const [selectedCurrency, setSelectedCurrency] = useState("USD")
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [successfulResults, setSuccessfulResults] = useState<any[]>([])
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [errorResults, setErrorResults] = useState<any[]>([])
 
   // Currency conversion hook
-  const {
-    convertPrice,
-    isLoading: currencyLoading,
-    error: currencyError,
-  } = useCurrencyConverter()
+  const { convertPrice, isLoading: currencyLoading, error: currencyError } = useCurrencyConverter()
 
   // Domain search hook
   const {
@@ -73,6 +64,19 @@ function SearchResultsContent() {
     }
   }, [searchParams, startSearch])
 
+  useEffect(() => {
+    /* Fixed error result handling to ensure timeout errors are properly displayed */
+    const successful = results.filter((result) => result.ok)
+    const errors = results.filter((result) => !result.ok)
+    setSuccessfulResults(successful)
+    setErrorResults(errors)
+
+    // Debug logging to track error results
+    if (errors.length > 0) {
+      console.log("[v0] Error results found:", errors)
+    }
+  }, [results])
+
   const handleNewSearch = (e: React.FormEvent) => {
     e.preventDefault()
     const q = domain.trim()
@@ -95,11 +99,7 @@ function SearchResultsContent() {
   }
 
   // Fallback converter to avoid crashes if converter not ready
-  const safeConvertPrice = (
-    price: number,
-    fromCurrency: string,
-    toCurrency: string
-  ) => {
+  const safeConvertPrice = (price: number, fromCurrency: string, toCurrency: string) => {
     try {
       if (currencyLoading || currencyError) {
         // If converter not ready, just return original price
@@ -111,8 +111,7 @@ function SearchResultsContent() {
     }
   }
 
-  const errorText =
-    typeof error === "string" ? error : error ? JSON.stringify(error) : null
+  const errorText = typeof error === "string" ? error : error ? JSON.stringify(error) : null
 
   return (
     <div className="min-h-screen relative overflow-hidden">
@@ -156,9 +155,7 @@ function SearchResultsContent() {
                   <>
                     <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300 text-sm">
                       {getConnectionIcon()}
-                      <span className="hidden sm:inline capitalize">
-                        {connectionStatus}
-                      </span>
+                      <span className="hidden sm:inline capitalize">{connectionStatus}</span>
                     </div>
                     <Button
                       variant="outline"
@@ -181,10 +178,7 @@ function SearchResultsContent() {
                   </Button>
                 )}
 
-                <CurrencySelector
-                  selectedCurrency={selectedCurrency}
-                  onCurrencyChange={setSelectedCurrency}
-                />
+                <CurrencySelector selectedCurrency={selectedCurrency} onCurrencyChange={setSelectedCurrency} />
 
                 <ThemeToggle />
               </div>
@@ -195,23 +189,17 @@ function SearchResultsContent() {
         <div className="container mx-auto px-4 py-8">
           {/* Search status */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-              Domain Search Results
-            </h1>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Domain Search Results</h1>
             <p className="text-gray-600 dark:text-gray-400">
               Searching for:{" "}
-              <span className="font-semibold text-indigo-600 dark:text-indigo-400">
-                {searchParams.get("q")}
-              </span>
+              <span className="font-semibold text-indigo-600 dark:text-indigo-400">{searchParams.get("q")}</span>
             </p>
 
             {isLoading && (
               <div className="mt-4 space-y-3">
                 <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
                   <RefreshCw className="w-4 h-4 animate-spin text-indigo-600" />
-                  <span>
-                    Searching across {expectedProviders.length} providers...
-                  </span>
+                  <span>Searching across {expectedProviders.length} providers...</span>
                   <span className="text-gray-500 dark:text-gray-400">
                     ({results.length}/{expectedProviders.length})
                   </span>
@@ -224,7 +212,8 @@ function SearchResultsContent() {
               <div className="flex items-center gap-2 mt-4 text-green-600 dark:text-green-400">
                 <CheckCircle className="w-4 h-4" />
                 <span>
-                  Search completed - Found {results.length} provider results
+                  Search completed - Found {successfulResults.length} successful results and {errorResults.length} error
+                  results
                 </span>
               </div>
             )}
@@ -232,9 +221,7 @@ function SearchResultsContent() {
             {errorText && (
               <Alert className="mt-4 glass-card border-red-200 dark:border-red-800">
                 <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
-                <AlertDescription className="text-red-700 dark:text-red-300">
-                  {errorText}
-                </AlertDescription>
+                <AlertDescription className="text-red-700 dark:text-red-300">{errorText}</AlertDescription>
               </Alert>
             )}
 
@@ -250,7 +237,8 @@ function SearchResultsContent() {
 
           {/* Results grid */}
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {results.map((result) => (
+            {/* Show successful results first */}
+            {successfulResults.map((result) => (
               <ProviderCard
                 key={result.provider}
                 result={result}
@@ -259,6 +247,18 @@ function SearchResultsContent() {
                 convertPrice={safeConvertPrice}
               />
             ))}
+
+            {/* Show error results after successful ones, but only when search is complete */}
+            {isComplete &&
+              errorResults.map((result) => (
+                <ProviderCard
+                  key={result.provider}
+                  result={result}
+                  logo={providerLogos[result.provider] || "/domain-provider-logo.jpg"}
+                  selectedCurrency={selectedCurrency}
+                  convertPrice={safeConvertPrice}
+                />
+              ))}
 
             {isLoading && results.length < expectedProviders.length && (
               <>
@@ -275,12 +275,8 @@ function SearchResultsContent() {
           {!isLoading && results.length === 0 && !errorText && (
             <div className="text-center py-12">
               <Clock className="w-16 h-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                No results yet
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400">
-                Start a search to see domain availability and pricing
-              </p>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">No results yet</h3>
+              <p className="text-gray-600 dark:text-gray-400">Start a search to see domain availability and pricing</p>
             </div>
           )}
         </div>

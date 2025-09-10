@@ -1,43 +1,44 @@
-"use client";
-import type React from "react";
-import { useState, useEffect, Suspense } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+"use client"
+
+import type React from "react"
+import { useState, useEffect, Suspense } from "react"
+import { useSearchParams, useRouter } from "next/navigation"
 import {
   ArrowLeft,
-  Search,
+  Search as SearchIcon,
   CheckCircle,
   RefreshCw,
   Clock,
   Wifi,
   WifiOff,
   AlertTriangle,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ProviderCard } from "@/components/provider-card";
-import { ProviderSkeleton } from "@/components/provider-skeleton";
-import { useDomainSearch } from "@/hooks/use-domain-search";
-import { CurrencySelector } from "@/components/currency-selector";
-import { useCurrencyConverter } from "@/hooks/use-currency-converter";
+} from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Progress } from "@/components/ui/progress"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { ProviderCard } from "@/components/provider-card"
+import { ProviderSkeleton } from "@/components/provider-skeleton"
+import { useDomainSearch } from "@/hooks/use-domain-search"
+import { CurrencySelector } from "@/components/currency-selector"
+import { useCurrencyConverter } from "@/hooks/use-currency-converter"
 
 function SearchResultsContent() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const [domain, setDomain] = useState(searchParams.get("q") || "");
-  const [selectedCurrency, setSelectedCurrency] = useState("USD");
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const [domain, setDomain] = useState(searchParams.get("q") || "")
+  const [selectedCurrency, setSelectedCurrency] = useState("USD")
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [successfulResults, setSuccessfulResults] = useState<any[]>([]);
+  const [successfulResults, setSuccessfulResults] = useState<any[]>([])
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [errorResults, setErrorResults] = useState<any[]>([]);
+  const [errorResults, setErrorResults] = useState<any[]>([])
 
   // Currency conversion hook
   const {
     convertPrice,
     isLoading: currencyLoading,
     error: currencyError,
-  } = useCurrencyConverter();
+  } = useCurrencyConverter()
 
   // Domain search hook
   const {
@@ -50,7 +51,7 @@ function SearchResultsContent() {
     cancelSearch,
     connectionStatus,
     expectedProviders,
-  } = useDomainSearch();
+  } = useDomainSearch()
 
   const providerLogos: Record<string, string> = {
     godaddy: "/godaddy.png",
@@ -65,47 +66,46 @@ function SearchResultsContent() {
     dynadot: "/dynadot.png",
     namesilo: "/namesilo.png",
     spaceship: "/spaceship.jpeg",
-  };
+  }
 
   useEffect(() => {
-    const queryDomain = searchParams.get("q");
+    const queryDomain = searchParams.get("q")
     if (queryDomain) {
-      setDomain(queryDomain);
-      startSearch(queryDomain);
+      setDomain(queryDomain)
+      startSearch(queryDomain)
     }
-  }, [searchParams, startSearch]);
+  }, [searchParams, startSearch])
 
   useEffect(() => {
-    const successful = results.filter((result) => result.ok);
-    const errors = results.filter((result) => !result.ok);
-    setSuccessfulResults(successful);
-    setErrorResults(errors);
-
+    const successful = results.filter((r) => r.ok)
+    const errors = results.filter((r) => !r.ok)
+    setSuccessfulResults(successful)
+    setErrorResults(errors)
     if (errors.length > 0) {
-      console.log("Error results found:", errors);
+      console.log("Error results found:", errors)
     }
-  }, [results]);
+  }, [results])
 
   const handleNewSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    const q = domain.trim();
+    e.preventDefault()
+    const q = domain.trim()
     if (q) {
-      router.push(`/search?q=${encodeURIComponent(q)}`);
+      router.push(`/search?q=${encodeURIComponent(q)}`)
     }
-  };
+  }
 
   const getConnectionIcon = () => {
     switch (connectionStatus) {
       case "connected":
-        return <Wifi className="w-4 h-4 text-green-500" />;
+        return <Wifi className="h-4 w-4 text-teal-400" />
       case "connecting":
-        return <RefreshCw className="w-4 h-4 animate-spin text-indigo-500" />;
+        return <RefreshCw className="h-4 w-4 animate-spin text-indigo-400" />
       case "disconnected":
-        return <WifiOff className="w-4 h-4 text-red-500" />;
+        return <WifiOff className="h-4 w-4 text-red-500" />
       default:
-        return <AlertTriangle className="w-4 h-4 text-gray-500" />;
+        return <AlertTriangle className="h-4 w-4 text-gray-500" />
     }
-  };
+  }
 
   // Fallback converter to avoid crashes if converter not ready
   const safeConvertPrice = (
@@ -114,52 +114,53 @@ function SearchResultsContent() {
     toCurrency: string
   ) => {
     try {
-      if (currencyLoading || currencyError) {
-        // If converter not ready, just return original price
-        return price;
-      }
-      return convertPrice(price, fromCurrency, toCurrency);
+      if (currencyLoading || currencyError) return price
+      return convertPrice(price, fromCurrency, toCurrency)
     } catch {
-      return price;
+      return price
     }
-  };
+  }
 
   const errorText =
-    typeof error === "string" ? error : error ? JSON.stringify(error) : null;
+    typeof error === "string" ? error : error ? JSON.stringify(error) : null
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-indigo-500/10 to-teal-500/10 rounded-full blur-3xl animate-float" />
+    <div className="relative min-h-screen overflow-hidden bg-black">
+      {/* keep subtle accents but do not change bg */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -top-40 -right-40 h-80 w-80 animate-float rounded-full bg-gradient-to-br from-indigo-500/10 to-teal-500/10 blur-3xl" />
         <div
-          className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-teal-500/10 to-indigo-500/10 rounded-full blur-3xl animate-float"
+          className="absolute -bottom-40 -left-40 h-80 w-80 animate-float rounded-full bg-gradient-to-tr from-teal-500/10 to-indigo-500/10 blur-3xl"
           style={{ animationDelay: "2s" }}
         />
       </div>
 
       <div className="relative z-10 min-h-screen">
-        <div className="glass-card border-b sticky top-0 z-20">
+        {/* Sticky header aligned with your glass pattern */}
+        <div className="sticky top-0 z-20 border-b border-white/10 bg-black/60 backdrop-blur-md">
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center gap-4">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => router.push("/")}
-                className="text-gray-900 dark:text-gray-100 hover:bg-gray-100/20 dark:hover:bg-gray-800/20"
+                className="text-gray-100 hover:bg-white/10"
               >
-                <ArrowLeft className="w-4 h-4 mr-2" />
+                <ArrowLeft className="mr-2 h-4 w-4" />
                 Back
               </Button>
 
-              <form onSubmit={handleNewSearch} className="flex-1 max-w-2xl">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 dark:text-gray-400 w-5 h-5" />
+              <form onSubmit={handleNewSearch} className="flex-1">
+                <div className="relative mx-auto w-full max-w-2xl">
+                  <SearchIcon className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
                   <Input
                     type="text"
                     placeholder="Enter domain name (e.g., example.com)"
                     value={domain}
                     onChange={(e) => setDomain(e.target.value)}
-                    className="glass-input pl-10 pr-4 py-2 rounded-xl border-0"
+                    className="glass-input w-full rounded-xl border-0 py-2 pl-10 pr-4"
+                    autoComplete="off"
+                    spellCheck={false}
                   />
                 </div>
               </form>
@@ -167,9 +168,9 @@ function SearchResultsContent() {
               <div className="flex items-center gap-2">
                 {isLoading && (
                   <>
-                    <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300 text-sm">
+                    <div className="flex items-center gap-2 text-sm text-gray-300">
                       {getConnectionIcon()}
-                      <span className="hidden sm:inline capitalize">
+                      <span className="hidden capitalize sm:inline">
                         {connectionStatus}
                       </span>
                     </div>
@@ -177,18 +178,19 @@ function SearchResultsContent() {
                       variant="outline"
                       size="sm"
                       onClick={cancelSearch}
-                      className="glass-card border-0 text-gray-900 dark:text-gray-100 hover:bg-gray-100/20 dark:hover:bg-gray-800/20 bg-transparent"
+                      className="border-white/10 bg-white/10 text-gray-100 hover:bg-white/20"
                     >
                       Cancel
                     </Button>
                   </>
                 )}
+
                 {!isLoading && (
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => router.push("/")}
-                    className="glass-card border-0 text-gray-900 dark:text-gray-100 hover:bg-gray-100/20 dark:hover:bg-gray-800/20 bg-transparent"
+                    className="border-white/10 bg-white/10 text-gray-100 hover:bg-white/20"
                   >
                     Try New Domain
                   </Button>
@@ -198,63 +200,63 @@ function SearchResultsContent() {
                   selectedCurrency={selectedCurrency}
                   onCurrencyChange={setSelectedCurrency}
                 />
-
               </div>
             </div>
           </div>
         </div>
 
+        {/* Content */}
         <div className="container mx-auto px-4 py-8">
-          {/* Search status */}
+          {/* Status header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+            <h1 className="mb-2 text-3xl font-bold text-gray-100">
               Domain Search Results
             </h1>
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-gray-400">
               Searching for:{" "}
-              <span className="font-semibold text-indigo-600 dark:text-indigo-400">
+              <span className="font-semibold text-teal-400">
                 {searchParams.get("q")}
               </span>
             </p>
 
             {isLoading && (
               <div className="mt-4 space-y-3">
-                <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
-                  <RefreshCw className="w-4 h-4 animate-spin text-indigo-600" />
+                <div className="flex items-center gap-2 text-gray-300">
+                  <RefreshCw className="h-4 w-4 animate-spin text-indigo-400" />
                   <span>
                     Searching across {expectedProviders.length} providers...
                   </span>
-                  <span className="text-gray-500 dark:text-gray-400">
+                  <span className="text-gray-500">
                     ({results.length}/{expectedProviders.length})
                   </span>
                 </div>
-                <Progress value={progress} className="w-full h-2" />
+                <Progress value={progress} className="h-2 w-full" />
               </div>
             )}
 
             {isComplete && !errorText && (
-              <div className="flex items-center gap-2 mt-4 text-green-600 dark:text-green-400">
-                <CheckCircle className="w-4 h-4" />
+              <div className="mt-4 flex items-center gap-2 text-teal-400">
+                <CheckCircle className="h-4 w-4" />
                 <span>
-                  Search completed - Found {successfulResults.length} successful
+                  Search completed − Found {successfulResults.length} successful
                   results and {errorResults.length} error results
                 </span>
               </div>
             )}
 
             {errorText && (
-              <Alert className="mt-4 glass-card border-red-200 dark:border-red-800">
-                <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
-                <AlertDescription className="text-red-700 dark:text-red-300">
+              <Alert className="glass-card mt-4 border-red-800">
+                <AlertTriangle className="h-4 w-4 text-red-400" />
+                <AlertDescription className="text-red-300">
                   {errorText}
                 </AlertDescription>
               </Alert>
             )}
 
             {currencyError && (
-              <Alert className="mt-3 glass-card border-yellow-200 dark:border-yellow-800">
-                <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
-                <AlertDescription className="text-yellow-700 dark:text-yellow-300">
+              <Alert className="glass-card mt-3 border-yellow-800">
+                <AlertTriangle className="h-4 w-4 text-yellow-400" />
+                <AlertDescription className="text-yellow-300">
                   Currency conversion unavailable. Showing original prices.
                 </AlertDescription>
               </Alert>
@@ -263,7 +265,7 @@ function SearchResultsContent() {
 
           {/* Results grid */}
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {/* Show successful results first */}
+            {/* successful first */}
             {successfulResults.map((result) => (
               <ProviderCard
                 key={result.provider}
@@ -276,7 +278,7 @@ function SearchResultsContent() {
               />
             ))}
 
-            {/* Show error results after successful ones, but only when search is complete */}
+            {/* errors after completion */}
             {isComplete &&
               errorResults.map((result) => (
                 <ProviderCard
@@ -294,10 +296,7 @@ function SearchResultsContent() {
             {isLoading && results.length < expectedProviders.length && (
               <>
                 {Array.from({
-                  length: Math.max(
-                    0,
-                    expectedProviders.length - results.length
-                  ),
+                  length: Math.max(0, expectedProviders.length - results.length),
                 }).map((_, i) => (
                   <ProviderSkeleton key={`skeleton-${i}`} />
                 ))}
@@ -307,12 +306,12 @@ function SearchResultsContent() {
 
           {/* Empty state */}
           {!isLoading && results.length === 0 && !errorText && (
-            <div className="text-center py-12">
-              <Clock className="w-16 h-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+            <div className="py-12 text-center">
+              <Clock className="mx-auto mb-4 h-16 w-16 text-gray-500" />
+              <h3 className="mb-2 text-xl font-semibold text-gray-100">
                 No results yet
               </h3>
-              <p className="text-gray-600 dark:text-gray-400">
+              <p className="text-gray-400">
                 Start a search to see domain availability and pricing
               </p>
             </div>
@@ -320,19 +319,19 @@ function SearchResultsContent() {
         </div>
       </div>
     </div>
-  );
+  )
 }
 
 export default function SearchPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-white">Loading...</div>
+        <div className="flex min-h-screen items-center justify-center bg-black">
+          <div className="text-gray-100">Loading...</div>
         </div>
       }
     >
       <SearchResultsContent />
     </Suspense>
-  );
+  )
 }

@@ -17,6 +17,8 @@ export const metadata: Metadata = {
     "Compare domain prices across multiple registrars in real-time. Find your perfect domain name with NameHunt.",
 }
 
+const logo = "https://raw.githubusercontent.com/Abhishek-B-R/NameHunt/main/frontend/public/namehunt.png";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -24,6 +26,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="icon" href={logo} />
+      </head>
       <body className={poppins.className} suppressHydrationWarning>
         <Suspense fallback={null}>{children}</Suspense>
         {/* <Analytics /> */}

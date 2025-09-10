@@ -93,7 +93,7 @@ export function ProviderCard({
             <img
               src={logo || "/placeholder.svg"}
               alt={`${result.provider} logo`}
-              className="max-w-full max-h-full object-contain rounded"
+              className="max-w-full max-h-full min-w-12 object-contain rounded"
             />
           </div>
         ) : null}
@@ -107,7 +107,7 @@ export function ProviderCard({
           <Button
             variant="outline"
             size="sm"
-            className="w-full glass-card border-0 text-gray-900 dark:text-gray-100 hover:bg-gray-100/20 dark:hover:bg-gray-800/20 bg-transparent"
+            className="w-full glass-card border-0 theme-button"
             onClick={() => {
               const website = providerWebsites[result.provider.toLowerCase()] + result.domain
               if (website) {
@@ -172,6 +172,7 @@ export function ProviderCard({
             <div className="mt-1 rounded bg-red-500/10 text-red-700 dark:text-red-300 p-2">
               <code className="text-xs break-words">{truncate(err, 300)}</code>
             </div>
+            <div className="mt-5 bg-red-500/20 p-2">We might be having some temporary failures, please check official website for pricing details. Click on &quot;Visit Site&quot; button</div>
           </div>
         )}
 
@@ -180,6 +181,7 @@ export function ProviderCard({
             <span className="text-muted-foreground">Raw</span>
             <div className="mt-1 rounded bg-muted p-2">
               <code className="text-xs break-words">{raw}</code>
+              <div className="mt-5">We might be having some temporary failures, please check official website for pricing details. Click on &quot;Visit Site&quot; button</div>
             </div>
           </div>
         )}

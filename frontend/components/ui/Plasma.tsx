@@ -193,6 +193,7 @@ export const Plasma: React.FC<PlasmaProps> = ({
         containerRef.current.removeEventListener('mousemove', handleMouseMove);
       }
       try {
+        // eslint-disable-next-line react-hooks/exhaustive-deps
         containerRef.current?.removeChild(canvas);
       } catch {}
     };

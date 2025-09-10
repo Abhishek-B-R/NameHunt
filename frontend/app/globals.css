@@ -2,6 +2,9 @@
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
+html, body {
+  height: 100%;
+}
 
 :root {
   --background: oklch(1 0 0);
@@ -366,4 +369,138 @@
   .interactive-card:hover {
     transform: none;
   }
+}
+
+@layer utilities {
+  /* Subtle soft gradient with a vignette edge. No heavy blur. */
+  .card-bg-teal {
+    background:
+      radial-gradient(1200px 600px at 120% -10%, rgba(20,184,166,0.12), transparent 60%),
+      radial-gradient(900px 700px at -10% 110%, rgba(56,189,248,0.10), transparent 60%),
+      linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.8));
+  }
+  .dark .card-bg-teal {
+    background:
+      radial-gradient(1000px 500px at 110% -10%, rgba(20,184,166,0.16), transparent 60%),
+      radial-gradient(800px 600px at -10% 110%, rgba(56,189,248,0.14), transparent 60%),
+      linear-gradient(180deg, rgba(15,23,42,0.65), rgba(15,23,42,0.5));
+  }
+
+  .card-bg-sky {
+    background:
+      radial-gradient(1200px 600px at 120% -10%, rgba(59,130,246,0.10), transparent 60%),
+      radial-gradient(900px 700px at -10% 110%, rgba(14,165,233,0.12), transparent 60%),
+      linear-gradient(180deg, rgba(255,255,255,0.92), rgba(255,255,255,0.84));
+  }
+  .dark .card-bg-sky {
+    background:
+      radial-gradient(1000px 500px at 110% -10%, rgba(59,130,246,0.16), transparent 60%),
+      radial-gradient(800px 600px at -10% 110%, rgba(14,165,233,0.16), transparent 60%),
+      linear-gradient(180deg, rgba(15,23,42,0.62), rgba(15,23,42,0.48));
+  }
+
+  .card-bg-emerald {
+    background:
+      radial-gradient(1200px 600px at 120% -10%, rgba(16,185,129,0.12), transparent 60%),
+      radial-gradient(900px 700px at -10% 110%, rgba(34,197,94,0.10), transparent 60%),
+      linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.82));
+  }
+  .dark .card-bg-emerald {
+    background:
+      radial-gradient(1000px 500px at 110% -10%, rgba(16,185,129,0.16), transparent 60%),
+      radial-gradient(800px 600px at -10% 110%, rgba(34,197,94,0.16), transparent 60%),
+      linear-gradient(180deg, rgba(15,23,42,0.62), rgba(15,23,42,0.46));
+  }
+
+  /* Soft inner border effect that plays nice with transforms */
+  .card-chrome {
+    position: relative;
+  }
+  .card-chrome::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 24px;
+    pointer-events: none;
+    box-shadow:
+      inset 0 0 0 1px rgba(148,163,184,0.25),
+      0 10px 30px rgba(15,23,42,0.08);
+  }
+  .dark .card-chrome::before {
+    box-shadow:
+      inset 0 0 0 1px rgba(148,163,184,0.18),
+      0 10px 30px rgba(0,0,0,0.35);
+  }
+
+  /* Slight shine highlight */
+  .card-sheen::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 24px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.08), transparent 60%);
+    pointer-events: none;
+    mix-blend-mode: overlay;
+  }
+  .dark .card-sheen::after {
+    background: linear-gradient(180deg, rgba(255,255,255,0.04), transparent 60%);
+    mix-blend-mode: soft-light;
+  }
+  .card-fade {
+    opacity: 0.2;
+    transition: opacity 220ms ease, transform 220ms ease, filter 220ms ease;
+  }
+  .card-active {
+    opacity: 1;
+    transform: translateY(-6px);
+  }
+}
+@layer utilities {
+  .card-solid {
+    background: linear-gradient(180deg, rgba(19,25,38,0.94), rgba(19,25,38,0.88));
+  }
+  .light .card-solid,
+  :root:not(.dark) .card-solid {
+    background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(252,252,253,0.94));
+  }
+
+  .card-edge {
+    position: relative;
+    border-radius: 20px;
+  }
+  .card-edge::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 20px;
+    box-shadow:
+      inset 0 0 0 1px rgba(148,163,184,0.22),
+      0 8px 28px rgba(0,0,0,0.25);
+    pointer-events: none;
+  }
+  .light .card-edge::before,
+  :root:not(.dark) .card-edge::before {
+    box-shadow:
+      inset 0 0 0 1px rgba(15,23,42,0.08),
+      0 8px 24px rgba(15,23,42,0.08);
+  }
+
+  .card-vignette::after {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: 22px;
+    background: radial-gradient(120% 140% at 50% 0%, rgba(45,212,191,0.08), transparent 55%);
+    pointer-events: none;
+    mix-blend-mode: soft-light;
+  }
+  .light .card-vignette::after,
+  :root:not(.dark) .card-vignette::after {
+    background: radial-gradient(120% 140% at 50% 0%, rgba(59,130,246,0.06), transparent 55%);
+    mix-blend-mode: normal;
+    opacity: 0.8;
+  }
+
+  .stack-dim { opacity: 0.28; }
+  .stack-active { opacity: 1; transform: translateY(-4px); }
 }

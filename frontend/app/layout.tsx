@@ -3,7 +3,6 @@ import type { Metadata } from "next"
 import { Poppins } from "next/font/google"
 // import { Analytics } from "@vercel/analytics/next"
 import { Suspense } from "react"
-import { ThemeProvider } from "@/components/theme-provider"
 import "./globals.css"
 
 const poppins = Poppins({
@@ -16,7 +15,6 @@ export const metadata: Metadata = {
   title: "NameHunt - Find the Perfect Domain at the Best Price",
   description:
     "Compare domain prices across multiple registrars in real-time. Find your perfect domain name with NameHunt.",
-  generator: "v0.app",
 }
 
 export default function RootLayout({
@@ -27,10 +25,8 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={poppins.className} suppressHydrationWarning>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <Suspense fallback={null}>{children}</Suspense>
-          {/* <Analytics /> */}
-        </ThemeProvider>
+        <Suspense fallback={null}>{children}</Suspense>
+        {/* <Analytics /> */}
       </body>
     </html>
   )

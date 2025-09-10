@@ -6,7 +6,6 @@ import { Search, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { validateDomain } from "@/lib/domain-validation";
 import FeaturesComponent from "@/components/FeaturesComponent";
 // import Plasma from '@/components/ui/Plasma';
@@ -51,12 +50,8 @@ export default function HomePage() {
           height: "50vh",
         }}
       >
-        <DarkVeil hueShift={45} warpAmount={3} />
+        <DarkVeil hueShift={51} warpAmount={3} />
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/20 dark:to-black/40" />
-      </div>
-
-      <div className="fixed top-4 right-4 z-50">
-        <ThemeToggle />
       </div>
 
       <div
@@ -155,7 +150,7 @@ export default function HomePage() {
           </p>
           <Button
             onClick={() => searchRef?.current?.focus()}
-            className="inline-flex items-center justify-center rounded-lg bg-teal-500 hover:bg-teal-600 dark:bg-teal-400 dark:hover:bg-teal-500 px-4 py-2 font-semibold text-white dark:text-black"
+            className="inline-flex items-center justify-center rounded-lg theme-button px-4 py-2 font-semibold text-white dark:text-black"
           >
             Start a search
           </Button>

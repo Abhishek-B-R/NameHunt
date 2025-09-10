@@ -1,5 +1,4 @@
 "use client";
-
 import type React from "react";
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -17,7 +16,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { ProviderCard } from "@/components/provider-card";
 import { ProviderSkeleton } from "@/components/provider-skeleton";
 import { useDomainSearch } from "@/hooks/use-domain-search";
@@ -201,7 +199,6 @@ function SearchResultsContent() {
                   onCurrencyChange={setSelectedCurrency}
                 />
 
-                <ThemeToggle />
               </div>
             </div>
           </div>

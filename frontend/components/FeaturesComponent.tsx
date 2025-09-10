@@ -1,105 +1,125 @@
-import SpotlightCard from "@/components/SpotlightCard";
-import { Zap, Globe, DollarSign } from "lucide-react";
+"use client"
 
-export default function FeaturesComponent() {
+import { Zap, Globe, DollarSign } from "lucide-react"
+import { CanvasRevealEffect } from "@/components/ui/canvas-reveal-effect"
+
+export default function Features() {
   return (
-    <section className="relative mt-8 z-10 w-full overflow-x-hidden px-4 sm:px-6 lg:px-10 py-12">
+    <section className="relative z-10 w-full px-4 sm:px-6 lg:px-10 py-12 mt-8">
       <div className="mx-auto max-w-7xl">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
           {/* Card 1 */}
-          <SpotlightCard
-            className="
-              group relative rounded-2xl p-6 sm:p-7
-              bg-gradient-to-b from-white to-slate-50
-              border border-slate-800/70
-              shadow-[0_6px_30px_-12px_rgba(0,0,0,0.18)]
-              ring-1 ring-black/[0.02]
-              transition-all duration-300
-              hover:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.25)]
-              dark:from-[#0b1220] dark:to-[#0a101b]
-              dark:border-white/10
-              dark:ring-white/5
-              dark:shadow-[0_10px_50px_-20px_rgba(0,0,0,0.6)]
-              dark:hover:ring-white/10
-            "
-            spotlightColor="rgba(45, 212, 191, 0.35)"
+          <FeatureCard
+            title="Live pricing comparison"
+            description="Real-time prices from top registrars in one place."
+            icon={<Zap className="h-6 w-6" />}
           >
-            <div className="relative z-10 text-center">
-              <div className="mb-4 mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-teal-500 to-teal-700 text-white shadow-lg shadow-teal-500/20">
-                <Zap className="h-6 w-6" />
-              </div>
-              <h3 className="mb-2 text-lg font-semibold text-slate-900 dark:text-white">
-                Live pricing comparison
-              </h3>
-              <p className="text-sm text-slate-600 dark:text-slate-300">
-                Real-time prices from top registrars in one place.
-              </p>
-            </div>
-          </SpotlightCard>
+            <CanvasRevealEffect
+              animationSpeed={4.2}
+              colors={[[45, 212, 191]]} 
+              dotSize={2}
+              containerClassName="bg-[#07332f]" 
+              showGradient={false}
+            />
+            <FadeMask />
+          </FeatureCard>
 
           {/* Card 2 */}
-          <SpotlightCard
-            className="
-              group relative rounded-2xl p-6 sm:p-7
-              bg-gradient-to-b from-white to-slate-50
-              border border-slate-800/70
-              shadow-[0_6px_30px_-12px_rgba(0,0,0,0.18)]
-              ring-1 ring-black/[0.02]
-              transition-all duration-300
-              hover:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.25)]
-              dark:from-[#0a131f] dark:to-[#08111b]
-              dark:border-white/10
-              dark:ring-white/5
-              dark:shadow-[0_10px_50px_-20px_rgba(0,0,0,0.6)]
-              dark:hover:ring-white/10
-            "
-            spotlightColor="rgba(56, 189, 248, 0.35)"
+          <FeatureCard
+            title="Fast and reliable"
+            description="Blazing fast lookups with native-feel scrolling."
+            icon={<Globe className="h-6 w-6" />}
           >
-            <div className="relative z-10 text-center">
-              <div className="mb-4 mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-sky-500 to-blue-700 text-white shadow-lg shadow-sky-500/20">
-                <Globe className="h-6 w-6" />
-              </div>
-              <h3 className="mb-2 text-lg font-semibold text-slate-900 dark:text-white">
-                Fast and reliable
-              </h3>
-              <p className="text-sm text-slate-600 dark:text-slate-300">
-                Blazing fast lookups with native-feel scrolling.
-              </p>
-            </div>
-          </SpotlightCard>
+            <CanvasRevealEffect
+              animationSpeed={3.4}
+              colors={[
+                [56, 189, 248], // sky
+                [59, 130, 246], // blue
+              ]}
+              dotSize={2}
+              containerClassName="bg-[#0a1423]"
+              showGradient={false}
+            />
+            <FadeMask />
+          </FeatureCard>
 
           {/* Card 3 */}
-          <SpotlightCard
-            className="
-              group relative rounded-2xl p-6 sm:p-7
-              bg-gradient-to-b from-white to-slate-50
-              border border-slate-800/70
-              shadow-[0_6px_30px_-12px_rgba(0,0,0,0.18)]
-              ring-1 ring-black/[0.02]
-              transition-all duration-300
-              hover:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.25)]
-              dark:from-[#081712] dark:to-[#071510]
-              dark:border-white/10
-              dark:ring-white/5
-              dark:shadow-[0_10px_50px_-20px_rgba(0,0,0,0.6)]
-              dark:hover:ring-white/10
-            "
-            spotlightColor="rgba(16, 185, 129, 0.35)"
+          <FeatureCard
+            title="Transparent, no markup"
+            description="The exact price you will pay. No hidden fees."
+            icon={<DollarSign className="h-6 w-6" />}
           >
-            <div className="relative z-10 text-center">
-              <div className="mb-4 mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-lg shadow-emerald-500/20">
-                <DollarSign className="h-6 w-6" />
-              </div>
-              <h3 className="mb-2 text-lg font-semibold text-slate-900 dark:text-white">
-                Transparent, no markup
-              </h3>
-              <p className="text-sm text-slate-600 dark:text-slate-300">
-                The exact price you will pay. No hidden fees.
-              </p>
-            </div>
-          </SpotlightCard>
+            <CanvasRevealEffect
+              animationSpeed={3.2}
+              colors={[[16, 185, 129]]} // emerald
+              dotSize={2}
+              containerClassName="bg-[#071510]"
+              showGradient={false}
+            />
+            <FadeMask />
+          </FeatureCard>
         </div>
       </div>
     </section>
-  );
+  )
+}
+
+function FeatureCard({
+  title,
+  description,
+  icon,
+  children,
+}: {
+  title: string
+  description: string
+  icon: React.ReactNode
+  children: React.ReactNode
+}) {
+  return (
+    <div
+      className="
+        group relative overflow-hidden rounded-2xl
+        border border-white/10
+        bg-white/[0.03] dark:bg-white/[0.03]
+        ring-1 ring-white/[0.04]
+        shadow-[0_10px_50px_-20px_rgba(0,0,0,0.6)]
+        hover:ring-white/10 transition-colors
+      "
+    >
+      {/* Animated canvas background */}
+      <div className="absolute inset-0 opacity-60 group-hover:opacity-80 transition-opacity">
+        {children}
+      </div>
+
+      {/* Content overlay */}
+      <div className="relative z-10 p-6 sm:p-7 text-center">
+        <div
+          className="
+            mb-4 mx-auto flex h-12 w-12 items-center justify-center rounded-xl
+            bg-gradient-to-br from-teal-600 to-teal-700 text-white
+            shadow-lg shadow-teal-500/20
+            dark:from-teal-600 dark:to-teal-700
+          "
+        >
+          {icon}
+        </div>
+        <h3 className="mb-2 text-lg font-semibold text-slate-900 dark:text-white">
+          {title}
+        </h3>
+        <p className="text-sm text-slate-600 dark:text-slate-300">
+          {description}
+        </p>
+      </div>
+
+      {/* Subtle top sheen */}
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/5 to-transparent" />
+    </div>
+  )
+}
+
+function FadeMask() {
+  // Soft radial mask so the canvas doesn’t dominate
+  return (
+    <div className="absolute inset-0 [mask-image:radial-gradient(420px_at_center,white,transparent)] bg-black/40 dark:bg-black/70" />
+  )
 }

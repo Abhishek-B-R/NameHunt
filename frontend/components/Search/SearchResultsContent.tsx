@@ -1,5 +1,5 @@
 import type React from "react";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -33,16 +33,14 @@ type SortDir = "asc" | "desc";
 export default function SearchResultsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [domain, setDomain] = useState(searchParams.get("q") || "");
-  const [selectedCurrency, setSelectedCurrency] = useState("USD");
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [successfulResults, setSuccessfulResults] = useState<any[]>([]);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [errorResults, setErrorResults] = useState<any[]>([]);
 
-  // Sort: default to arrival asc
-  const [sortKey, setSortKey] = useState<SortKey>("arrival");
-  const [sortDir, setSortDir] = useState<SortDir>("asc");
+  // Initialize domain from URL once
+  const initialQ = searchParams.get("q") || "";
+  const [domain, setDomain] = useState(initialQ);
+  const [selectedCurrency, setSelectedCurrency] = useState("USD");
+
+  // Prevent repeated startSearch for the same q
+  const lastStartedRef = useRef<string | null>(null);
 
   // Currency conversion
   const {
@@ -67,7 +65,7 @@ export default function SearchResultsContent() {
   const providerLogos: Record<string, string> = {
     godaddy: "/godaddy.png",
     namecheap: "/namecheap.png",
-    squarespace: "/squarespace.jpg",
+    squarespace: "/squarespace.png",
     hostinger: "/hostinger.png",
     networksolutions: "/networksolutions.png",
     namecom: "/namecom.png",
@@ -79,44 +77,27 @@ export default function SearchResultsContent() {
     spaceship: "/spaceship.jpeg",
   };
 
+  // Trigger a search only when the actual q string changes
   useEffect(() => {
-    const queryDomain = searchParams.get("q");
-    if (queryDomain) {
-      setDomain(queryDomain);
-      startSearch(queryDomain);
+    const q = searchParams.get("q") || "";
+    setDomain((prev) => (prev === q ? prev : q));
+    if (q && lastStartedRef.current !== q) {
+      lastStartedRef.current = q;
+      startSearch(q);
     }
-  }, [searchParams, startSearch]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams.get("q")]);
 
-  useEffect(() => {
-    const successful = results.filter((r) => r.ok);
-    const errors = results.filter((r) => !r.ok);
-    setSuccessfulResults(successful);
-    setErrorResults(errors);
-    if (errors.length > 0) {
-      console.log("Error results found:", errors);
-    }
-  }, [results]);
+  // Derive successful and error results without setState
+  const successfulResults = useMemo(
+    () => results.filter((r) => r.ok),
+    [results]
+  );
+  const errorResults = useMemo(() => results.filter((r) => !r.ok), [results]);
 
-  const handleNewSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    const q = domain.trim();
-    if (q) {
-      router.push(`/search?q=${encodeURIComponent(q)}`);
-    }
-  };
-
-  const getConnectionIcon = () => {
-    switch (connectionStatus) {
-      case "connected":
-        return <Wifi className="h-4 w-4 text-teal-400" />;
-      case "connecting":
-        return <RefreshCw className="h-4 w-4 animate-spin text-indigo-400" />;
-      case "disconnected":
-        return <WifiOff className="h-4 w-4 text-red-500" />;
-      default:
-        return <AlertTriangle className="h-4 w-4 text-gray-500" />;
-    }
-  };
+  // Sort controls
+  const [sortKey, setSortKey] = useState<SortKey>("arrival");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
 
   const { safeConvertPrice, errorText } = useConvertHelpers({
     currencyLoading,
@@ -125,7 +106,6 @@ export default function SearchResultsContent() {
     error,
   });
 
-  // Sort successful results; errors always appended after
   const sortedSuccessful = useMemo(() => {
     if (successfulResults.length === 0) return successfulResults;
     const copy = [...successfulResults];
@@ -153,9 +133,33 @@ export default function SearchResultsContent() {
     return copy;
   }, [successfulResults, sortKey, sortDir]);
 
+  const handleNewSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = domain.trim();
+    if (q) {
+      router.push(`/search?q=${encodeURIComponent(q)}`);
+      // let the effect fire for new q; clear guard so it runs again
+      if (lastStartedRef.current !== q) {
+        lastStartedRef.current = null;
+      }
+    }
+  };
+
+  const getConnectionIcon = () => {
+    switch (connectionStatus) {
+      case "connected":
+        return <Wifi className="h-4 w-4 text-teal-400" />;
+      case "connecting":
+        return <RefreshCw className="h-4 w-4 animate-spin text-indigo-400" />;
+      case "disconnected":
+        return <WifiOff className="h-4 w-4 text-red-500" />;
+      default:
+        return <AlertTriangle className="h-4 w-4 text-gray-500" />;
+    }
+  };
+
   const providerGrid = (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-      {/* Successful results (sorted) */}
       {sortedSuccessful.map((result) => (
         <ProviderCard
           key={result.provider}
@@ -166,7 +170,6 @@ export default function SearchResultsContent() {
         />
       ))}
 
-      {/* Error results always last */}
       {isComplete &&
         errorResults.map((result) => (
           <ProviderCard
@@ -178,7 +181,6 @@ export default function SearchResultsContent() {
           />
         ))}
 
-      {/* Skeletons while loading */}
       {isLoading && results.length < expectedProviders.length && (
         <>
           {Array.from({
@@ -193,7 +195,6 @@ export default function SearchResultsContent() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-black">
-      {/* subtle blobs unchanged */}
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -top-40 -right-40 h-80 w-80 animate-float rounded-full bg-gradient-to-br from-indigo-500/10 to-teal-500/10 blur-3xl" />
         <div
@@ -203,7 +204,6 @@ export default function SearchResultsContent() {
       </div>
 
       <div className="relative z-10 min-h-screen">
-        {/* Header */}
         <div className="sticky top-0 z-20 border-b border-white/10 bg-black/60 backdrop-blur-md">
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center gap-4">
@@ -211,7 +211,7 @@ export default function SearchResultsContent() {
                 variant="ghost"
                 size="sm"
                 onClick={() => router.push("/")}
-                className="text-gray-100 hover:bg-white/10"
+                className="text-gray-100 hover:bg:white/10"
               >
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back
@@ -272,9 +272,7 @@ export default function SearchResultsContent() {
           </div>
         </div>
 
-        {/* Content */}
         <div className="container mx-auto px-4 py-8">
-          {/* Status header */}
           <div className="mb-6">
             <h1 className="mb-2 text-3xl font-bold text-gray-100">
               Domain Search Results
@@ -287,7 +285,6 @@ export default function SearchResultsContent() {
             </p>
           </div>
 
-          {/* Loading */}
           {isLoading && (
             <div className="mb-8 space-y-3">
               <div className="flex items-center gap-2 text-gray-300">
@@ -303,7 +300,6 @@ export default function SearchResultsContent() {
             </div>
           )}
 
-          {/* Done + Sort */}
           {isComplete && !errorText && (
             <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-2 text-teal-400">
@@ -314,7 +310,6 @@ export default function SearchResultsContent() {
                 </span>
               </div>
 
-              {/* Sort by dropdown */}
               <SortDropdown
                 sortKey={sortKey}
                 sortDir={sortDir}
@@ -324,7 +319,6 @@ export default function SearchResultsContent() {
             </div>
           )}
 
-          {/* Errors */}
           {errorText && (
             <Alert className="glass-card mb-6 border-red-800">
               <AlertTriangle className="h-4 w-4 text-red-400" />
@@ -334,7 +328,6 @@ export default function SearchResultsContent() {
             </Alert>
           )}
 
-          {/* Currency notice */}
           {currencyError && (
             <Alert className="glass-card mb-6 border-yellow-800">
               <AlertTriangle className="h-4 w-4 text-yellow-400" />
@@ -344,10 +337,8 @@ export default function SearchResultsContent() {
             </Alert>
           )}
 
-          {/* Results grid */}
           {providerGrid}
 
-          {/* Empty state */}
           {!isLoading && results.length === 0 && !errorText && (
             <div className="py-12 text-center">
               <Clock className="mx-auto mb-4 h-16 w-16 text-gray-500" />

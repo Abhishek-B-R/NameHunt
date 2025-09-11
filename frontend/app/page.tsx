@@ -11,6 +11,7 @@ import FeaturesComponent from "@/components/Landing/FeaturesComponent";
 // import Plasma from '@/components/ui/Plasma';
 import DarkVeil from "@/components/ui/DarkVeil";
 import { FAQ } from "@/components/Landing/AccordianSection";
+import OpenOnRegistrarsButton from "@/components/Landing/OpenAllProviders";
 
 export default function HomePage() {
   const [domain, setDomain] = useState("");
@@ -112,13 +113,19 @@ export default function HomePage() {
                 </Alert>
               )}
 
-              <Button
-                type="submit"
-                size="lg"
-                className="w-full py-5 text-base sm:text-lg font-semibold theme-button rounded-2xl"
-              >
-                Search domains
-              </Button>
+              <div className="flex w-full gap-3">
+                <OpenOnRegistrarsButton
+                  domain={domain}
+                  className="flex-1 w-full sm:text-lg font-semibold rounded-2xl transition active:scale-[0.99]"
+                />
+                <Button
+                  type="submit"
+                  size="lg"
+                  className="flex-1 w-full py-7.5 sm:text-lg font-semibold rounded-2xl theme-button transition active:scale-[0.99]"
+                >
+                  Analyse
+                </Button>
+              </div>
             </form>
 
             <div className="mt-4 flex items-center justify-center gap-3 text-sm text-medium-contrast">

@@ -150,7 +150,7 @@ export function useDomainSearch() {
       const providers = requestedProviders.join(",")
       const url = `http://localhost:8080/search/stream?domain=${encodeURIComponent(
         validatedDomain
-      )}&timeoutMs=120000&providers=${providers}`
+      )}&timeoutMs=180000&providers=${providers}`
 
       try {
         const es = new EventSource(url)

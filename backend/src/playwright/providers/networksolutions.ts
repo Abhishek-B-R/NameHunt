@@ -59,7 +59,7 @@ export async function checkNetworkSolutions(
 
     await page.goto(url, {
       waitUntil: "domcontentloaded",
-      timeout: opts.timeoutMs ?? 60000,
+      timeout: opts.timeoutMs ?? 90000,
     });
 
     // small human-ish pause
@@ -127,14 +127,14 @@ export async function checkNetworkSolutions(
 
     // Wait for either card type or a general results container
     await Promise.race([
-      tileCard.waitFor({ timeout: 3000 }).catch(() => {}),
-      cartCard.waitFor({ timeout: 3000 }).catch(() => {}),
+      tileCard.waitFor({ timeout: 15000 }).catch(() => {}),
+      cartCard.waitFor({ timeout: 15000 }).catch(() => {}),
       page
         .locator(
           ':text("Add to cart"), :text("ADD TO CART"), :text("is available")'
         )
         .first()
-        .waitFor({ timeout: 3000 })
+        .waitFor({ timeout: 15000 })
         .catch(() => {}),
     ]);
 

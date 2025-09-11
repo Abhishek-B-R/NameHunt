@@ -82,99 +82,22 @@ export async function checkDomainPorkbun(
   const page = await ctx.newPage();
 
   try {
-    // Navigate to Porkbun homepage
-    await page.goto("https://porkbun.com/", {
+    // Directly open Porkbun search page for the requested domain
+    const q = encodeURIComponent(domain);
+    await page.goto(`https://porkbun.com/checkout/search?q=${q}`, {
       waitUntil: "domcontentloaded",
-      timeout: opts.timeoutMs ?? 60000,
+      timeout: opts.timeoutMs ?? 90000,
     });
 
-    // Human-like pause
-    await sleep(1200 + Math.random() * 800);
-
-    // Find and fill the search input
-    const searchInput = page.locator(
-      'input[type="text"], input[placeholder*="domain"], input[name*="search"], #searchInput'
-    );
-
-    if (
-      !(await searchInput
-        .first()
-        .isVisible()
-        .catch(() => false))
-    ) {
-      // Fallback selectors for search input
-      const fallbackSelectors = [
-        'input[type="search"]',
-        ".search input",
-        "#domain-search input",
-        'form input[type="text"]',
-        "input",
-      ];
-
-      let found = false;
-      for (const selector of fallbackSelectors) {
-        try {
-          const input = page.locator(selector).first();
-          if (await input.isVisible({ timeout: 1000 })) {
-            await input.fill(domain);
-            found = true;
-            break;
-          }
-        } catch (e) {
-          continue;
-        }
-      }
-
-      if (!found) {
-        return {
-          ok: false,
-          domain,
-          error: "Could not find search input field",
-        };
-      }
-    } else {
-      await searchInput.first().fill(domain);
-    }
-
-    // Submit the search
-    const submitButtons = [
-      'button[type="submit"]',
-      'input[type="submit"]',
-      'button:has-text("Search")',
-      ".search-button",
-      ".btn-search",
-      "form button",
-      '[class*="search"] button',
-    ];
-
-    let submitted = false;
-    for (const selector of submitButtons) {
-      try {
-        const btn = page.locator(selector).first();
-        if (await btn.isVisible({ timeout: 500 })) {
-          await btn.click();
-          submitted = true;
-          break;
-        }
-      } catch (e) {
-        continue;
-      }
-    }
-
-    if (!submitted) {
-      // Try pressing Enter as fallback
-      await page.keyboard.press("Enter");
-    }
-
-    // Wait for results to load
+    // Give time for dynamic rendering similar to old behavior
     await Promise.race([
-      page.waitForSelector('[class*="result"]', { timeout: 10000 }),
-      page.waitForSelector(".domain-result", { timeout: 10000 }),
-      page.waitForSelector('[data-testid*="result"]', { timeout: 10000 }),
-      page.waitForSelector(':has-text("available")', { timeout: 10000 }),
-      page.waitForSelector(':has-text("registered")', { timeout: 10000 }),
-      page.waitForSelector(':has-text("Inquire")', { timeout: 10000 }),
-      sleep(10000),
+      page.waitForSelector('[class*="result"]', { timeout: 12000 }),
+      page.waitForSelector(".domain-result", { timeout: 12000 }),
+      page.waitForSelector('[data-testid*="result"]', { timeout: 12000 }),
+      page.waitForSelector(':has-text("available")', { timeout: 12000 }),
+      page.waitForSelector(':has-text("registered")', { timeout: 12000 }),
+      page.waitForSelector(':has-text("Inquire")', { timeout: 12000 }),
+      sleep(12000),
     ]);
 
     // Additional wait for dynamic content
@@ -184,6 +107,10 @@ export async function checkDomainPorkbun(
 
     // Check if domain appears in results
     if (!(bodyText || "").toLowerCase().includes(domain.toLowerCase())) {
+      await ctx.close();
+      if (opts.ephemeralProfile !== false) {
+        await fs.remove(profileDir).catch(() => {});
+      }
       return {
         ok: false,
         domain,
@@ -196,6 +123,10 @@ export async function checkDomainPorkbun(
     const domainSection = extractDomainSection(bodyText || "", domain);
 
     if (!domainSection) {
+      await ctx.close();
+      if (opts.ephemeralProfile !== false) {
+        await fs.remove(profileDir).catch(() => {});
+      }
       return {
         ok: false,
         domain,

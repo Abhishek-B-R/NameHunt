@@ -59,21 +59,21 @@ export async function checkDomainHover(
 
     await page.goto(url, {
       waitUntil: "domcontentloaded",
-      timeout: opts.timeoutMs ?? 60000,
+      timeout: opts.timeoutMs ?? 90000,
     });
 
     await sleep(1000 + Math.random() * 800);
 
     // Wait for either results table/cards or known CTAs
     await Promise.race([
-      page.waitForSelector(':has-text("Add to cart")', { timeout: 8000 }),
-      page.waitForSelector(':has-text("Taken")', { timeout: 8000 }),
-      page.waitForSelector(':has-text("Unavailable")', { timeout: 8000 }),
-      page.waitForSelector(':has-text("Transfer")', { timeout: 8000 }),
+      page.waitForSelector(':has-text("Add to cart")', { timeout: 12000 }),
+      page.waitForSelector(':has-text("Taken")', { timeout: 12000 }),
+      page.waitForSelector(':has-text("Unavailable")', { timeout: 12000 }),
+      page.waitForSelector(':has-text("Transfer")', { timeout: 12000 }),
       page.waitForSelector('[class*="result"], [class*="domain"], table, li', {
-        timeout: 8000,
+        timeout: 12000,
       }),
-      sleep(8000),
+      sleep(12000),
     ]);
 
     // Find the exact domain row/card

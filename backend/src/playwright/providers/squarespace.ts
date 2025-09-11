@@ -59,7 +59,7 @@ export async function checkSquarespace(
 
     await page.goto(url, {
       waitUntil: "domcontentloaded",
-      timeout: opts.timeoutMs ?? 60000,
+      timeout: opts.timeoutMs ?? 90000,
     });
 
     // Let SPA hydrate
@@ -67,7 +67,7 @@ export async function checkSquarespace(
 
     // Find the row that contains the exact domain
     const row = page.locator(`div[role="row"]:has-text("${domain}")`).first();
-    await row.waitFor({ timeout: 60000 });
+    await row.waitFor({ timeout: 75000 });
 
     const rowText = (await row.innerText().catch(() => "")) || "";
 

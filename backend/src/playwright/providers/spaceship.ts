@@ -67,18 +67,18 @@ export async function checkDomainSpaceship(
 
     await page.goto(url, {
       waitUntil: "domcontentloaded",
-      timeout: opts.timeoutMs ?? 60000,
+      timeout: opts.timeoutMs ?? 90000,
     });
 
     await sleep(700);
-    await page.waitForLoadState("networkidle", { timeout: 5000 }).catch(() => {});
+    await page.waitForLoadState("networkidle", { timeout: 15000 }).catch(() => {});
 
     // Click Search if present
     try {
       const searchBtn = page.locator('button:has-text("Search")').first();
       if (await searchBtn.isVisible().catch(() => false)) {
         await searchBtn.click().catch(() => {});
-        await page.waitForLoadState("networkidle", { timeout: 5000 }).catch(() => {});
+        await page.waitForLoadState("networkidle", { timeout: 15000 }).catch(() => {});
       }
     } catch {}
 
@@ -91,9 +91,9 @@ export async function checkDomainSpaceship(
       .first();
 
     await Promise.race([
-      availableContainer.waitFor({ timeout: 8000 }).catch(() => {}),
-      unavailableContainer.waitFor({ timeout: 8000 }).catch(() => {}),
-      fullContainer.waitFor({ timeout: 8000 }).catch(() => {}),
+      availableContainer.waitFor({ timeout: 12000 }).catch(() => {}),
+      unavailableContainer.waitFor({ timeout: 12000 }).catch(() => {}),
+      fullContainer.waitFor({ timeout: 12000 }).catch(() => {}),
     ]);
 
     const containerText =
@@ -135,7 +135,7 @@ export async function checkDomainSpaceship(
       ".main-result__available__prices__container .main-result__available__prices__text__renewal__line";
 
     if (isAvailable) {
-      await pricesContainer.waitFor({ timeout: 6000 }).catch(() => {});
+      await pricesContainer.waitFor({ timeout: 12000 }).catch(() => {});
     }
 
     let registrationPrice: number | undefined;

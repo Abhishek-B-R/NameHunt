@@ -59,7 +59,7 @@ export async function checkDomainNameCom(
 
     await page.goto(url, {
       waitUntil: "domcontentloaded",
-      timeout: opts.timeoutMs ?? 60000,
+      timeout: opts.timeoutMs ?? 90000,
     });
 
     // Human-like pause
@@ -67,16 +67,16 @@ export async function checkDomainNameCom(
 
     // Wait for search results to load
     await Promise.race([
-      page.waitForSelector('[data-testid="domain-result"]', { timeout: 5000 }),
-      page.waitForSelector(".domain-result", { timeout: 5000 }),
-      page.waitForSelector(".search-results", { timeout: 5000 }),
-      page.waitForSelector('[class*="result"]', { timeout: 5000 }),
-      page.waitForSelector('button:has-text("Make Offer")', { timeout: 5000 }),
-      sleep(5000),
+      page.waitForSelector('[data-testid="domain-result"]', { timeout: 12000 }),
+      page.waitForSelector(".domain-result", { timeout: 12000 }),
+      page.waitForSelector(".search-results", { timeout: 12000 }),
+      page.waitForSelector('[class*="result"]', { timeout: 12000 }),
+      page.waitForSelector('button:has-text("Make Offer")', { timeout: 12000 }),
+      sleep(12000),
     ]);
 
     // Additional wait for dynamic content
-    await sleep(2000);
+    await sleep(3000);
 
     // Look for the exact domain in search results
     const domainResultSelectors = [
@@ -92,7 +92,7 @@ export async function checkDomainNameCom(
     for (const selector of domainResultSelectors) {
       try {
         resultCard = page.locator(selector).first();
-        if (await resultCard.isVisible({ timeout: 1000 })) {
+        if (await resultCard.isVisible({ timeout: 3000 })) {
           break;
         }
       } catch (e) {

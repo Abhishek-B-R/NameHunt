@@ -59,7 +59,7 @@ export async function checkNamecheap(
 
     await page.goto(url, {
       waitUntil: "domcontentloaded",
-      timeout: opts.timeoutMs ?? 45000,
+      timeout: opts.timeoutMs ?? 90000,
     });
 
     // let SPA fetch
@@ -72,7 +72,7 @@ export async function checkNamecheap(
       .first();
 
     // Wait briefly for it to appear and finish loading
-    await article.waitFor({ timeout: 12000 });
+    await article.waitFor({ timeout: 30000 });
 
     // Sometimes the element appears then updates; give it one more frame
     await sleep(200);

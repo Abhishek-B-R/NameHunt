@@ -77,7 +77,7 @@ export async function checkDomainIONOS(
   try {
     await page.goto("https://www.ionos.com/domains/domain-finder", {
       waitUntil: "domcontentloaded",
-      timeout: opts.timeoutMs ?? 60000,
+      timeout: opts.timeoutMs ?? 90000,
     });
 
     await sleep(800 + Math.random() * 600);
@@ -149,7 +149,39 @@ export async function checkDomainIONOS(
       sleep(12000),
     ]);
 
-    await sleep(1000);
+    await sleep(3000);
+
+    // Prefer structured extraction from the result card when present
+    const card = page
+      .locator('section.card__section:has(h3.headline)')
+      .filter({ hasText: domain.split(".")[0] }) // minimal filter
+      .first();
+
+    let registrationPriceIntro: number | undefined;
+    let registrationCurrency: string | undefined;
+    let renewalPrice: number | undefined;
+    let renewalCurrency: string | undefined;
+
+    if (await card.isVisible().catch(() => false)) {
+      const priceValueText =
+        (await card.locator(".price__value").first().textContent().catch(() => "")) ||
+        "";
+      const priceStrikeText =
+        (await card.locator(".price__strike").first().textContent().catch(() => "")) ||
+        "";
+
+      if (priceValueText) {
+        const { amount, currency } = parsePrice(priceValueText);
+        registrationPriceIntro = amount;
+        registrationCurrency = currency;
+      }
+
+      if (priceStrikeText) {
+        const { amount, currency } = parsePrice(priceStrikeText);
+        renewalPrice = amount;
+        renewalCurrency = currency;
+      }
+    }
 
     const bodyText = (await page.textContent("body").catch(() => "")) || "";
     const scoped = linesAround(bodyText, domain, 24) || bodyText.slice(0, 1200);
@@ -183,106 +215,87 @@ export async function checkDomainIONOS(
       };
     }
 
-    // Available hints
-    const availableBanner =
-      /still available/i.test(bodyText) ||
-      /Add to cart/i.test(bodyText) ||
-      /Introductory Offer/i.test(bodyText);
+    // If we could not read the structured nodes, fallback to your previous heuristic
+    let currency = registrationCurrency || renewalCurrency;
+    if (registrationPriceIntro == null || renewalPrice == null) {
+      const availableBanner =
+        /still available/i.test(bodyText) ||
+        /Add to cart/i.test(bodyText) ||
+        /Introductory Offer/i.test(bodyText);
 
-    // Try to grab the main card text
-    const cardLocCandidates = [
-      `:text("${domain}")`,
-      `div:has-text("${domain}")`,
-      `section:has-text("${domain}")`,
-      `article:has-text("${domain}")`,
-    ];
+      const cardLocCandidates = [
+        `:text("${domain}")`,
+        `div:has-text("${domain}")`,
+        `section:has-text("${domain}")`,
+        `article:has-text("${domain}")`,
+      ];
 
-    let cardText = "";
-    for (const sel of cardLocCandidates) {
-      const card = page.locator(sel).first();
-      if (await card.isVisible().catch(() => false)) {
-        const t = (await card.innerText().catch(() => "")) || "";
-        if (
-          /Add to cart/i.test(t) ||
-          /\/\s*year/i.test(t) ||
-          /Introductory Offer/i.test(t)
-        ) {
-          cardText = t;
-          break;
+      let cardText = "";
+      for (const sel of cardLocCandidates) {
+        const c = page.locator(sel).first();
+        if (await c.isVisible().catch(() => false)) {
+          const t = (await c.innerText().catch(() => "")) || "";
+          if (
+            /Add to cart/i.test(t) ||
+            /\/\s*year/i.test(t) ||
+            /Introductory Offer/i.test(t)
+          ) {
+            cardText = t;
+            break;
+          }
         }
       }
-    }
-    if (!cardText) cardText = scoped;
+      if (!cardText) cardText = scoped;
 
-    // If the card contains negative markers, treat as unavailable
-    if (
-      !availableBanner &&
-      /(taken|invalid|not available|transfer only)/i.test(cardText)
-    ) {
+      const priceHits = parseAllPrices(cardText);
+      const amounts = priceHits
+        .map((p) => p.amount)
+        .filter((n): n is number => typeof n === "number");
+
+      if (amounts.length >= 2) {
+        const max = Math.max(...amounts);
+        const min = Math.min(...amounts);
+        if (registrationPriceIntro == null) registrationPriceIntro = min;
+        if (renewalPrice == null) renewalPrice = max;
+        if (!currency)
+          currency =
+            priceHits.find((p) => p.amount === min)?.currency ||
+            priceHits[0]?.currency;
+      } else if (amounts.length === 1) {
+        if (registrationPriceIntro == null) registrationPriceIntro = amounts[0];
+        if (!currency) currency = priceHits[0]?.currency;
+      }
+
+      // Availability inference remains the same
+      const available =
+        availableBanner ||
+        /Add to cart/i.test(cardText) ||
+        /\/\s*year/i.test(cardText) ||
+        Boolean(registrationPriceIntro);
+
+      const isPremium =
+        /premium/i.test(cardText) ||
+        (renewalPrice || registrationPriceIntro || 0) > 50;
+
       await ctx.close();
       if (opts.ephemeralProfile !== false)
         await fs.remove(profileDir).catch(() => {});
+
       return {
         ok: true,
         domain,
-        available: false,
+        available: Boolean(available),
+        isPremium: isPremium || undefined,
+        registrationPrice: registrationPriceIntro ?? undefined,
+        renewalPrice: renewalPrice ?? undefined,
+        currency: currency || undefined,
         rawText: cardText.slice(0, 900),
       };
     }
 
-    // Extract all prices
-    const priceHits = parseAllPrices(cardText);
-    let registrationPriceIntro: number | undefined;
-    let registrationPriceRegular: number | undefined;
-    let currency: string | undefined;
-
-    const amounts = priceHits
-      .map((p) => p.amount)
-      .filter((n): n is number => typeof n === "number");
-
-    if (amounts.length >= 2) {
-      const max = Math.max(...amounts);
-      const min = Math.min(...amounts);
-      registrationPriceIntro = min;
-      registrationPriceRegular = max;
-      currency =
-        priceHits.find((p) => p.amount === min)?.currency ||
-        priceHits[0]?.currency;
-    } else if (amounts.length === 1) {
-      registrationPriceIntro = amounts[0];
-      currency = priceHits[0]?.currency;
-    }
-
-    // Explicit renewal extraction
-    const renewMatch =
-      cardText.match(
-        /renew[s]?\s+at[^$€£₹]*(₹|Rs\.?|INR|\$|USD|€|EUR|£|GBP)\s*([0-9][\d,]*\.?\d*)/i
-      ) ||
-      cardText.match(
-        /then[^$€£₹]*(₹|Rs\.?|INR|\$|USD|€|EUR|£|GBP)\s*([0-9][\d,]*\.?\d*)/i
-      ) ||
-      cardText.match(
-        /renewal[^$€£₹]*(₹|Rs\.?|INR|\$|USD|€|EUR|£|GBP)\s*([0-9][\d,]*\.?\d*)/i
-      );
-
-    let renewalPrice = renewMatch
-      ? parseFloat(renewMatch[2] || "".replace(/[^\d.]/g, ""))
-      : undefined;
-
-    // If no explicit renewal, assume renewal equals regular when both present
-    if (!renewalPrice && registrationPriceRegular) {
-      renewalPrice = registrationPriceRegular;
-    }
-
-    const available =
-      availableBanner ||
-      /Add to cart/i.test(cardText) ||
-      /\/\s*year/i.test(cardText) ||
-      Boolean(registrationPriceIntro);
-
+    // If structured read worked, we can assume available
     const isPremium =
-      /premium/i.test(cardText) ||
-      (registrationPriceRegular || registrationPriceIntro || 0) > 50;
+      (renewalPrice || 0) > 50 && !/Introductory Offer/i.test(scoped);
 
     await ctx.close();
     if (opts.ephemeralProfile !== false)
@@ -291,13 +304,12 @@ export async function checkDomainIONOS(
     return {
       ok: true,
       domain,
-      available: Boolean(available),
+      available: true,
       isPremium: isPremium || undefined,
-      // keep legacy fields
-      registrationPrice: registrationPriceIntro ?? registrationPriceRegular,
-      renewalPrice,
+      registrationPrice: registrationPriceIntro ?? undefined,
+      renewalPrice: renewalPrice ?? undefined,
       currency: currency || undefined,
-      rawText: cardText.slice(0, 900),
+      rawText: scoped.slice(0, 900),
     };
   } catch (e: any) {
     try {

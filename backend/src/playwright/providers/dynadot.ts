@@ -65,7 +65,7 @@ export async function checkDynadot(
 
     await page.goto(url, {
       waitUntil: "domcontentloaded",
-      timeout: opts.timeoutMs ?? 60000,
+      timeout: opts.timeoutMs ?? 90000,
     });
 
     await sleep(800 + Math.random() * 600);
@@ -100,7 +100,7 @@ export async function checkDynadot(
         .first();
     }
 
-    await row.waitFor({ timeout: 15000 });
+    await row.waitFor({ timeout: 20000 });
 
     if (!(await row.isVisible().catch(() => false))) {
       const body = (await page.innerText("body").catch(() => "")) || "";

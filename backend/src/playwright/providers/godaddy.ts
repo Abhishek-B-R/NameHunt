@@ -71,7 +71,7 @@ export async function checkGoDaddy(
     // Use referer to look like internal navigation
     await page.goto(searchUrl, {
       waitUntil: "domcontentloaded",
-      timeout: 60000,
+      timeout: 90000,
       referer: "https://www.godaddy.com/",
     });
 
@@ -101,7 +101,7 @@ export async function checkGoDaddy(
         );
       },
       domain,
-      { timeout: 45000 }
+      { timeout: 60000 }
     );
 
     const text = (await page.innerText("body")).trim();

@@ -1,6 +1,6 @@
-import type React from "react"
-import { useState, useEffect, useMemo } from "react"
-import { useSearchParams, useRouter } from "next/navigation"
+import type React from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Search as SearchIcon,
@@ -9,43 +9,47 @@ import {
   Clock,
   Wifi,
   WifiOff,
-  AlertTriangle
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Progress } from "@/components/ui/progress"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { ProviderCard } from "@/components/provider-card"
-import { ProviderSkeleton } from "@/components/provider-skeleton"
-import { useDomainSearch } from "@/hooks/use-domain-search"
-import { CurrencySelector } from "@/components/currency-selector"
-import { useCurrencyConverter } from "@/hooks/use-currency-converter"
-import { getRegistrationPrice, getRenewalPriceNormalized, useConvertHelpers } from "./sortFns"
-import SortDropdown from "./SortDropdown"
+  AlertTriangle,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ProviderCard } from "@/components/Search/provider-card";
+import { ProviderSkeleton } from "@/components/Search/provider-skeleton";
+import { useDomainSearch } from "@/hooks/use-domain-search";
+import { CurrencySelector } from "@/components/Search/currency-selector";
+import { useCurrencyConverter } from "@/hooks/use-currency-converter";
+import {
+  getRegistrationPrice,
+  getRenewalPriceNormalized,
+  useConvertHelpers,
+} from "./sortFns";
+import SortDropdown from "./SortDropdown";
 
-type SortKey = "arrival" | "registration" | "renewal"
-type SortDir = "asc" | "desc"
+type SortKey = "arrival" | "registration" | "renewal";
+type SortDir = "asc" | "desc";
 
 export default function SearchResultsContent() {
-  const searchParams = useSearchParams()
-  const router = useRouter()
-  const [domain, setDomain] = useState(searchParams.get("q") || "")
-  const [selectedCurrency, setSelectedCurrency] = useState("USD")
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const [domain, setDomain] = useState(searchParams.get("q") || "");
+  const [selectedCurrency, setSelectedCurrency] = useState("USD");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [successfulResults, setSuccessfulResults] = useState<any[]>([])
+  const [successfulResults, setSuccessfulResults] = useState<any[]>([]);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [errorResults, setErrorResults] = useState<any[]>([])
+  const [errorResults, setErrorResults] = useState<any[]>([]);
 
   // Sort: default to arrival asc
-  const [sortKey, setSortKey] = useState<SortKey>("arrival")
-  const [sortDir, setSortDir] = useState<SortDir>("asc")
+  const [sortKey, setSortKey] = useState<SortKey>("arrival");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
 
   // Currency conversion
   const {
     convertPrice,
     isLoading: currencyLoading,
     error: currencyError,
-  } = useCurrencyConverter()
+  } = useCurrencyConverter();
 
   // Domain search hook
   const {
@@ -58,7 +62,7 @@ export default function SearchResultsContent() {
     cancelSearch,
     connectionStatus,
     expectedProviders,
-  } = useDomainSearch()
+  } = useDomainSearch();
 
   const providerLogos: Record<string, string> = {
     godaddy: "/godaddy.png",
@@ -73,81 +77,81 @@ export default function SearchResultsContent() {
     dynadot: "/dynadot.png",
     namesilo: "/namesilo.png",
     spaceship: "/spaceship.jpeg",
-  }
+  };
 
   useEffect(() => {
-    const queryDomain = searchParams.get("q")
+    const queryDomain = searchParams.get("q");
     if (queryDomain) {
-      setDomain(queryDomain)
-      startSearch(queryDomain)
+      setDomain(queryDomain);
+      startSearch(queryDomain);
     }
-  }, [searchParams, startSearch])
+  }, [searchParams, startSearch]);
 
   useEffect(() => {
-    const successful = results.filter((r) => r.ok)
-    const errors = results.filter((r) => !r.ok)
-    setSuccessfulResults(successful)
-    setErrorResults(errors)
+    const successful = results.filter((r) => r.ok);
+    const errors = results.filter((r) => !r.ok);
+    setSuccessfulResults(successful);
+    setErrorResults(errors);
     if (errors.length > 0) {
-      console.log("Error results found:", errors)
+      console.log("Error results found:", errors);
     }
-  }, [results])
+  }, [results]);
 
   const handleNewSearch = (e: React.FormEvent) => {
-    e.preventDefault()
-    const q = domain.trim()
+    e.preventDefault();
+    const q = domain.trim();
     if (q) {
-      router.push(`/search?q=${encodeURIComponent(q)}`)
+      router.push(`/search?q=${encodeURIComponent(q)}`);
     }
-  }
+  };
 
   const getConnectionIcon = () => {
     switch (connectionStatus) {
       case "connected":
-        return <Wifi className="h-4 w-4 text-teal-400" />
+        return <Wifi className="h-4 w-4 text-teal-400" />;
       case "connecting":
-        return <RefreshCw className="h-4 w-4 animate-spin text-indigo-400" />
+        return <RefreshCw className="h-4 w-4 animate-spin text-indigo-400" />;
       case "disconnected":
-        return <WifiOff className="h-4 w-4 text-red-500" />
+        return <WifiOff className="h-4 w-4 text-red-500" />;
       default:
-        return <AlertTriangle className="h-4 w-4 text-gray-500" />
+        return <AlertTriangle className="h-4 w-4 text-gray-500" />;
     }
-  }
+  };
 
   const { safeConvertPrice, errorText } = useConvertHelpers({
     currencyLoading,
     currencyError,
     convertPrice,
     error,
-  })
+  });
 
   // Sort successful results; errors always appended after
   const sortedSuccessful = useMemo(() => {
-    if (successfulResults.length === 0) return successfulResults
-    const copy = [...successfulResults]
+    if (successfulResults.length === 0) return successfulResults;
+    const copy = [...successfulResults];
 
     if (sortKey === "arrival") {
       copy.sort((a, b) => {
-        const ta = typeof a.timestamp === "number" ? a.timestamp : 0
-        const tb = typeof b.timestamp === "number" ? b.timestamp : 0
-        return sortDir === "asc" ? ta - tb : tb - ta
-      })
+        const ta = typeof a.timestamp === "number" ? a.timestamp : 0;
+        const tb = typeof b.timestamp === "number" ? b.timestamp : 0;
+        return sortDir === "asc" ? ta - tb : tb - ta;
+      });
     } else if (sortKey === "registration") {
       copy.sort((a, b) => {
-        const pa = getRegistrationPrice(a)
-        const pb = getRegistrationPrice(b)
-        return sortDir === "asc" ? pa - pb : pb - pa
-      })
+        const pa = getRegistrationPrice(a);
+        const pb = getRegistrationPrice(b);
+        return sortDir === "asc" ? pa - pb : pb - pa;
+      });
     } else if (sortKey === "renewal") {
       copy.sort((a, b) => {
-        const pa = getRenewalPriceNormalized(a)
-        const pb = getRenewalPriceNormalized(b)
-        return sortDir === "asc" ? pa - pb : pb - pa
-      })
+        const pa = getRenewalPriceNormalized(a);
+        const pb = getRenewalPriceNormalized(b);
+        return sortDir === "asc" ? pa - pb : pb - pa;
+      });
     }
 
-    return copy
-  }, [successfulResults, sortKey, sortDir])
+    return copy;
+  }, [successfulResults, sortKey, sortDir]);
 
   const providerGrid = (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -185,7 +189,7 @@ export default function SearchResultsContent() {
         </>
       )}
     </div>
-  )
+  );
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-black">
@@ -358,5 +362,5 @@ export default function SearchResultsContent() {
         </div>
       </div>
     </div>
-  )
+  );
 }

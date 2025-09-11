@@ -7,11 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { validateDomain } from "@/lib/domain-validation";
-import FeaturesComponent from "@/components/FeaturesComponent";
+import FeaturesComponent from "@/components/Landing/FeaturesComponent";
 // import Plasma from '@/components/ui/Plasma';
 import DarkVeil from "@/components/ui/DarkVeil";
-import { FAQ } from "@/components/AccordianSection";
-import Footer from "@/components/footer";
+import { FAQ } from "@/components/Landing/AccordianSection";
 
 export default function HomePage() {
   const [domain, setDomain] = useState("");
@@ -156,8 +155,6 @@ export default function HomePage() {
           </Button>
         </div>
       </section>
-
-      <Footer />
     </div>
   );
 }

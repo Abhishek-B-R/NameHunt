@@ -4,7 +4,7 @@ import Link from "next/link";
 
 export default function Footer() {
   return (
-    <footer className="w-full border-t border-border mt-16">
+    <footer className="w-full border-t border-border bg-black">
       <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-6">
         {/* Top row: brand + primary links */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">

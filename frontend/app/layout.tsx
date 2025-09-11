@@ -4,6 +4,8 @@ import { Poppins } from "next/font/google"
 // import { Analytics } from "@vercel/analytics/next"
 import { Suspense } from "react"
 import "./globals.css"
+import Footer from "@/components/footer"
+
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -32,6 +34,7 @@ export default function RootLayout({
       <body className={poppins.className} suppressHydrationWarning>
         <Suspense fallback={null}>{children}</Suspense>
         {/* <Analytics /> */}
+        <Footer />
       </body>
     </html>
   )

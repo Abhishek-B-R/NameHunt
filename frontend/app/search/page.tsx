@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
-import { Suspense } from "react"
-import SearchResultsContent from "@/components/SearchResultsContent"
+import { Suspense } from "react";
+import SearchResultsContent from "@/components/Search/SearchResultsContent";
 
 export default function SearchPage() {
   return (
@@ -14,5 +14,5 @@ export default function SearchPage() {
     >
       <SearchResultsContent />
     </Suspense>
-  )
+  );
 }

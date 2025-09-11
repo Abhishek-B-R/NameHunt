@@ -70,108 +70,74 @@ export async function checkDynadot(
 
     await sleep(800 + Math.random() * 600);
 
-    // Find the exact row. Prefer the specific result-row container.
-    let row = page
-      .locator(
-        [
-          `div.result-row:has(.search-domain-word:has-text("${domain}"))`,
-          `div[role="row"]:has(.search-domain-word:has-text("${domain}"))`,
-          `.domain-search-result:has(.search-domain-word:has-text("${domain}"))`,
-          `.domain-result:has(.search-domain-word:has-text("${domain}"))`,
-          `li:has(.search-domain-word:has-text("${domain}"))`,
-          `tr:has(.search-domain-word:has-text("${domain}"))`,
-        ].join(", ")
-      )
-      .first();
+    // Target the exact row that contains the exact domain
+    // Their markup shows: .result-row .search-domain-word == domain
+    const exactRowSel = `div.result-row:has(.search-domain-word:has-text("${domain}"))`;
+    await page.locator(exactRowSel).first().waitFor({ timeout: 20000 });
 
-    // If that fails, fallback to a text has selector, then refine to exact .search-domain-word
-    if (!(await row.isVisible().catch(() => false))) {
-      row = page
+    let row = page.locator(exactRowSel).first();
+
+    // Verify match
+    const rowDomainText =
+      (await row.locator(".search-domain-word").first().innerText().catch(() => "")) ||
+      "";
+    if (rowDomainText.trim().toLowerCase() !== domain.toLowerCase()) {
+      const fallback = page
         .locator(
           [
-            `div.result-row:has-text("${domain}")`,
-            `div[role="row"]:has-text("${domain}")`,
-            `.domain-search-result:has-text("${domain}")`,
-            `.domain-result:has-text("${domain}")`,
-            `li:has-text("${domain}")`,
-            `tr:has-text("${domain}")`,
+            `div[role="row"]:has(.search-domain-word:has-text("${domain}"))`,
+            `.domain-search-result:has(.search-domain-word:has-text("${domain}"))`,
           ].join(", ")
         )
         .first();
+      if (await fallback.isVisible().catch(() => false)) row = fallback;
     }
 
-    await row.waitFor({ timeout: 20000 });
+    // Pull text for rawText but only from this row
+    const rowText = (await row.innerText().catch(() => "")) || "";
 
-    if (!(await row.isVisible().catch(() => false))) {
-      const body = (await page.innerText("body").catch(() => "")) || "";
-      await ctx.close();
-      if (opts.ephemeralProfile !== false)
-        await fs.remove(profileDir).catch(() => {});
-      return {
-        ok: false,
-        domain,
-        error: "Result row not found",
-        rawText: body.slice(0, 900),
-      };
+    // Strict availability from row-only DOM
+    const hasAvailablePhrase =
+      (await row.locator('.search-domain:has-text("is available")').count()) > 0;
+
+    const hasTakenBadge =
+      (await row.locator(".search-taken-row-text:has-text('Taken')").count()) >
+        0 ||
+      (await row.locator(".search-taken-row").count()) > 0;
+
+    const hasCartIcon =
+      (await row.locator(".add-to-cart-widget-icon, .search-shop-cart").count()) >
+      0;
+
+    const hasVisiblePrice =
+      (await row.locator(".domain-price .search-price").count()) > 0;
+
+    // Decide availability
+    // If row explicitly says Taken, mark unavailable.
+    // Else if "is available" or cart or price exists, mark available.
+    let available: boolean;
+    if (hasTakenBadge) {
+      available = false;
+    } else if (hasAvailablePhrase || hasCartIcon || hasVisiblePrice) {
+      available = true;
+    } else {
+      // conservative fallback: look at the colorized search-domain block text
+      // but default to false if neither positive nor negative signals.
+      available = false;
     }
 
-    // Confirm the row domain matches exactly
-    const rowDomainText =
+    // Prices from row
+    // Registration price: .domain-price .search-price
+    const regText =
       (await row
-        .locator(".search-domain-word")
+        .locator(".domain-price .search-price")
         .first()
         .innerText()
         .catch(() => "")) || "";
-    if (
-      rowDomainText &&
-      rowDomainText.trim().toLowerCase() !== domain.toLowerCase()
-    ) {
-      const exactRow = page
-        .locator(
-          `div.result-row:has(.search-domain-word:has-text("${domain}"))`
-        )
-        .first();
-      if (await exactRow.isVisible().catch(() => false)) {
-        row = exactRow;
-      }
-    }
+    const regParsed = parsePrice(regText);
+    let registrationPrice = regParsed.amount;
 
-    await sleep(300);
-
-    const rowText = (await row.innerText().catch(() => "")) || "";
-
-    // Availability markers from this row only
-    const saysAvailable =
-      (await row.locator('.search-domain:has-text("is available")').count()) >
-        0 || /\bis available\b/i.test(rowText);
-
-    const negativeTaken =
-      /\btaken\b/i.test(rowText) ||
-      /unavailable/i.test(rowText) ||
-      /already registered/i.test(rowText) ||
-      /backorder/i.test(rowText) ||
-      /auction/i.test(rowText) ||
-      /make\s+an?\s+offer/i.test(rowText) ||
-      /whois/i.test(rowText);
-
-    // If unavailable, return immediately with no prices to avoid leakage from neighbors
-    if (negativeTaken && !saysAvailable) {
-      await ctx.close();
-      if (opts.ephemeralProfile !== false)
-        await fs.remove(profileDir).catch(() => {});
-      return {
-        ok: true,
-        domain,
-        available: false,
-        isPremium: /premium/i.test(rowText) || undefined,
-        registrationPrice: undefined,
-        renewalPrice: undefined,
-        currency: undefined,
-        rawText: rowText.slice(0, 900),
-      };
-    }
-
-    // Renewal price from this row
+    // Renewal price: from .search-renewal
     const renewalText =
       (await row
         .locator(".search-renewal")
@@ -181,17 +147,7 @@ export async function checkDynadot(
     const renewalParsed = parsePrice(renewalText);
     const renewalPrice = renewalParsed.amount;
 
-    // Registration price from this row
-    let regText =
-      (await row
-        .locator(".domain-price .search-price")
-        .first()
-        .innerText()
-        .catch(() => "")) || "";
-    let regParsed = parsePrice(regText);
-    let registrationPrice = regParsed.amount;
-
-    // Fallback to crossed regular price
+    // Fallbacks, but still scoped to the row
     if (registrationPrice === undefined) {
       const prevText =
         (await row
@@ -205,7 +161,6 @@ export async function checkDynadot(
       }
     }
 
-    // Final fallback: compute from price tokens within this row only
     if (registrationPrice === undefined) {
       const priceTokens = await row
         .locator(".domain-price, .search-price-group, [class*='price']")
@@ -214,60 +169,30 @@ export async function checkDynadot(
       const joined = priceTokens.join(" ");
       const prices = parseAllPrices(joined)
         .map((p) => p.amount)
-        .filter((n): n is number => !!n);
+        .filter((n): n is number => typeof n === "number");
       if (prices.length) {
-        const uniq = Array.from(new Set(prices));
-        if (renewalPrice !== undefined) {
-          const candidates = uniq.filter(
-            (a) => Math.abs(a - renewalPrice) > 1e-6
-          );
-          registrationPrice = candidates.length
-            ? Math.max(...candidates)
-            : Math.max(...uniq);
-        } else {
-          registrationPrice = Math.max(...uniq);
-        }
+        // For premium, .prev-price shows regular, .search-price shows sale
+        // Prefer the larger one as the safe regPrice
+        registrationPrice = Math.max(...prices);
       }
     }
 
-    // Currency from this row
-    const currency =
+    // Currency preference from reg, then renewal, then any price in row
+    let currency =
       regParsed.currency ||
       renewalParsed.currency ||
       (parseAllPrices(rowText)[0]?.currency as string | undefined) ||
       "USD";
 
-    // Cart presence
-    const hasCart =
-      (await row
-        .locator(
-          [
-            ".add-to-cart-widget-icon",
-            'button:has-text("Add to Cart")',
-            'a:has-text("Add to Cart")',
-            '[aria-label*="Add to cart"]',
-          ].join(", ")
-        )
-        .first()
-        .isVisible()
-        .catch(() => false)) || /add to cart/i.test(rowText);
-
-    // Final availability from this row only
-    const available =
-      !negativeTaken &&
-      (saysAvailable || hasCart || registrationPrice !== undefined);
-
-    // Premium badge from this row
-    const premiumBadge =
-      (await row.locator("#premium-link, .search-registry-premium").count()) >
-        0 || /premium/i.test(rowText);
-
+    // Premium badge detection
     const isPremium =
-      premiumBadge || (registrationPrice ? registrationPrice > 100 : false);
+      (await row.locator("#premium-link.search-registry-premium").count()) > 0 ||
+      /registry\s+premium/i.test(rowText);
 
     await ctx.close();
-    if (opts.ephemeralProfile !== false)
+    if (opts.ephemeralProfile !== false) {
       await fs.remove(profileDir).catch(() => {});
+    }
 
     return {
       ok: true,

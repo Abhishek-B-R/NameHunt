@@ -12,6 +12,7 @@ import FeaturesComponent from "@/components/Landing/FeaturesComponent";
 import DarkVeil from "@/components/ui/DarkVeil";
 import { FAQ } from "@/components/Landing/AccordianSection";
 import OpenOnRegistrarsButton from "@/components/Landing/OpenAllProviders";
+import FutureWork from "@/components/Landing/FutureWork";
 
 export default function HomePage() {
   const [domain, setDomain] = useState("");
@@ -162,6 +163,8 @@ export default function HomePage() {
           </Button>
         </div>
       </section>
+      
+      <FutureWork/>
     </div>
   );
 }

@@ -103,6 +103,12 @@ export default function HomePage() {
                   onChange={handleDomainChange}
                   className="glass-input pl-12 pr-4 py-5 text-base sm:text-lg rounded-2xl border-0"
                   autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleSearch(e);
+                    }
+                  }}
                 />
               </div>
 

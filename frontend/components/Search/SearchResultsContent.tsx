@@ -34,13 +34,12 @@ export default function SearchResultsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  // Initialize domain from URL once
-  const initialQ = searchParams.get("q") || "";
-  const [domain, setDomain] = useState(initialQ);
-  const [selectedCurrency, setSelectedCurrency] = useState("USD");
+  // Read q once at mount
+  const initialQ = useMemo(() => searchParams.get("q") || "", [searchParams]); // empty deps on purpose
+  const initialQRef = useRef(initialQ);
 
-  // Prevent repeated startSearch for the same q
-  const lastStartedRef = useRef<string | null>(null);
+  const [domain, setDomain] = useState(initialQRef.current);
+  const [selectedCurrency, setSelectedCurrency] = useState("USD");
 
   // Currency conversion
   const {
@@ -62,33 +61,17 @@ export default function SearchResultsContent() {
     expectedProviders,
   } = useDomainSearch();
 
-  const providerLogos: Record<string, string> = {
-    godaddy: "/godaddy.png",
-    namecheap: "/namecheap.png",
-    squarespace: "/squarespace.png",
-    hostinger: "/hostinger.png",
-    networksolutions: "/networksolutions.png",
-    namecom: "/namecom.png",
-    porkbun: "/porkbun.png",
-    ionos: "/ionos.png",
-    hover: "/hover.png",
-    dynadot: "/dynadot.png",
-    namesilo: "/namesilo.png",
-    spaceship: "/spaceship.jpeg",
-  };
-
-  // Trigger a search only when the actual q string changes
+  // Trigger exactly once on mount if q exists
   useEffect(() => {
-    const q = searchParams.get("q") || "";
-    setDomain((prev) => (prev === q ? prev : q));
-    if (q && lastStartedRef.current !== q) {
-      lastStartedRef.current = q;
+    const q = initialQRef.current.trim();
+    if (q) {
       startSearch(q);
     }
+    // no deps, run once
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams.get("q")]);
+  }, []);
 
-  // Derive successful and error results without setState
+  // Derive successful and error results
   const successfulResults = useMemo(
     () => results.filter((r) => r.ok),
     [results]
@@ -133,15 +116,29 @@ export default function SearchResultsContent() {
     return copy;
   }, [successfulResults, sortKey, sortDir]);
 
+  const providerLogos: Record<string, string> = {
+    godaddy: "/godaddy.png",
+    namecheap: "/namecheap.png",
+    squarespace: "/squarespace.png",
+    hostinger: "/hostinger.png",
+    networksolutions: "/networksolutions.png",
+    namecom: "/namecom.png",
+    porkbun: "/porkbun.png",
+    ionos: "/ionos.png",
+    hover: "/hover.png",
+    dynadot: "/dynadot.png",
+    namesilo: "/namesilo.png",
+    spaceship: "/spaceship.jpeg",
+  };
+
+  // Manual new search by user
   const handleNewSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    const q = domain.trim();
-    if (q) {
-      router.push(`/search?q=${encodeURIComponent(q)}`);
-      // let the effect fire for new q; clear guard so it runs again
-      if (lastStartedRef.current !== q) {
-        lastStartedRef.current = null;
-      }
+    const next = domain.trim();
+    if (next) {
+      router.push(`/search?q=${encodeURIComponent(next)}`);
+      // also trigger immediately without waiting for another navigation
+      startSearch(next);
     }
   };
 
@@ -280,7 +277,7 @@ export default function SearchResultsContent() {
             <p className="text-gray-400">
               Searching for:{" "}
               <span className="font-semibold text-teal-400">
-                {searchParams.get("q")}
+                {initialQRef.current}
               </span>
             </p>
           </div>

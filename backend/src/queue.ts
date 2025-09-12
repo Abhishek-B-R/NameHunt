@@ -2,6 +2,8 @@
 import { Queue, Worker, QueueEvents, type JobsOptions } from "bullmq";
 import { ProviderNames } from "./types/providerNames.js";
 import { runBrowsingProvider } from "./browsing.js";
+import { EventEmitter } from "node:events";
+EventEmitter.defaultMaxListeners = 1000;
 
 // Use BullMQ connection options object. Do NOT construct ioredis yourself here.
 const connection = {
@@ -26,6 +28,10 @@ export const providerQueue = new Queue("provider-checks", {
     timeout: 60_000,
   } as JobsOptions,
 });
+
+// raise listener cap on this Queue instance
+// some typings don’t include setMaxListeners, so cast if needed
+(providerQueue as any).setMaxListeners?.(1000);
 
 export const providerEvents = new QueueEvents("provider-checks", { connection });
 

@@ -18,6 +18,7 @@ import { checkNamecomDC } from "./adapters/namecom.js";
 import { checkNamesiloDC } from "./adapters/namesilo.js";
 
 const ONE_DAY = 24 * 60 * 60;
+const HARD_TIMEOUT_MS = Number(process.env.HARD_TIMEOUT_MS || 200_000);
 
 // Playwright browser pool
 let browser: Browser | null = null;
@@ -36,15 +37,36 @@ export async function withContext<T>(
   return globalLimit(async () => {
     const b = await getBrowser();
     const ctx = await b.newContext({ viewport: { width: 1366, height: 768 } });
+    const page = await ctx.newPage();
+
+    let hardTimedOut = false;
+    const watchdog = setTimeout(async () => {
+      try {
+        hardTimedOut = true;
+        await page.close({ runBeforeUnload: false }).catch(() => {});
+        await ctx.close().catch(() => {});
+      } catch {
+        // ignore
+      }
+    }, HARD_TIMEOUT_MS);
+
     try {
-      const page = await ctx.newPage();
-      return await fn({ browser: b, context: ctx, page });
+      const result = await fn({ browser: b, context: ctx, page });
+      return result;
     } finally {
-      await ctx.close().catch(() => {});
+      clearTimeout(watchdog);
+
+      try {
+        if (!hardTimedOut) {
+          await page.close({ runBeforeUnload: false }).catch(() => {});
+          await ctx.close().catch(() => {});
+        }
+      } catch {
+        // ignore
+      }
     }
   });
 }
-
 // Redis cache
 type RedisClient = ReturnType<typeof createClient>;
 let redisClient: RedisClient | null = null;
@@ -82,23 +104,23 @@ const providerMap: Record<
   (domain: string) => Promise<DCResult>
 > = {
   [ProviderNames.GODADDY]: (domain) =>
-    checkGoDaddy(domain, { headless: true, ephemeralProfile: true }),
+    checkGoDaddy(domain, { headless: false, ephemeralProfile: true }),
   [ProviderNames.NAMECHEAP]: (domain) =>
-    checkNamecheap(domain, { headless: true, ephemeralProfile: true }),
+    checkNamecheap(domain, { headless: false, ephemeralProfile: true }),
   [ProviderNames.SQUARESPACE]: (domain) =>
-    checkSquarespace(domain, { headless: true, ephemeralProfile: true }),
+    checkSquarespace(domain, { headless: false, ephemeralProfile: true }),
   [ProviderNames.IONOS]: (domain) =>
-    checkDomainIONOS(domain, { headless: true, ephemeralProfile: true }),
+    checkDomainIONOS(domain, { headless: false, ephemeralProfile: true }),
   [ProviderNames.NETWORKSOLUTIONS]: (domain) =>
-    checkNetworkSolutions(domain, { headless: true, ephemeralProfile: true }),
+    checkNetworkSolutions(domain, { headless: false, ephemeralProfile: true }),
   [ProviderNames.DYNADOT]: (domain) =>
-    checkDynadot(domain, { headless: true, ephemeralProfile: true }),
+    checkDynadot(domain, { headless: false, ephemeralProfile: true }),
   [ProviderNames.HOVER]: (domain) =>
-    checkDomainHover(domain, { headless: true, ephemeralProfile: true }),
+    checkDomainHover(domain, { headless: false, ephemeralProfile: true }),
   [ProviderNames.PORKBUN]: (domain) =>
-    checkDomainPorkbun(domain, { headless: true, ephemeralProfile: true }),
+    checkDomainPorkbun(domain, { headless: false, ephemeralProfile: true }),
   [ProviderNames.SPACESHIP]: (domain) =>
-    checkDomainSpaceship(domain, { headless: true, ephemeralProfile: true }),
+    checkDomainSpaceship(domain, { headless: false, ephemeralProfile: true }),
 
   // SDK adapters
   [ProviderNames.HOSTINGER]: (domain) => checkHostingerDC(domain),

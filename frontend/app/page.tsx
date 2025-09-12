@@ -117,7 +117,8 @@ export default function HomePage() {
               <div className="flex w-full gap-3">
                 <OpenOnRegistrarsButton
                   domain={domain}
-                  className="flex-1 w-full sm:text-lg font-semibold rounded-2xl transition active:scale-[0.99]"
+                  className="flex-1 w-full px-4 sm:text-lg font-semibold rounded-2xl theme-button transition active:scale-[0.99]"
+                  buttonText="Compare Manually"
                 />
                 <Button
                   type="submit"
@@ -163,8 +164,8 @@ export default function HomePage() {
           </Button>
         </div>
       </section>
-      
-      <FutureWork/>
+
+      <FutureWork />
     </div>
   );
 }

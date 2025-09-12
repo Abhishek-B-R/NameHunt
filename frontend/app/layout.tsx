@@ -25,7 +25,7 @@ export const metadata = {
       "Compare domain prices across multiple registrars in real-time. Find your perfect domain name with NameHunt.",
     images: [
       {
-        url: "/preview/landing.png",
+        url: "https://namehunt.tech/preview/landing.png",
         width: 1200,
         height: 630,
         alt: "NameHunt - Find the Perfect Domain at the Best Price",
@@ -39,7 +39,7 @@ export const metadata = {
     title: "NameHunt - Find the Perfect Domain at the Best Price",
     description:
       "Compare domain prices across multiple registrars in real-time. Find your perfect domain name with NameHunt.",
-    images: ["/preview/landing.png"],
+    images: ["https://namehunt.tech/preview/landing.png"],
   },
 };
 

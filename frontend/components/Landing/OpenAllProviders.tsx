@@ -8,8 +8,7 @@ type Props = {
 
 const providerWebsites: Record<string, string> = {
   godaddy: "https://www.godaddy.com/domainsearch/find?domainToCheck=",
-  namecheap:
-    "https://www.namecheap.com/domains/registration/results/?domain=",
+  namecheap: "https://www.namecheap.com/domains/registration/results/?domain=",
   squarespace: "https://domains.squarespace.com/domain-search?query=",
   hostinger: "https://www.hostinger.com/domain-name-results?domain=",
   networksolutions:
@@ -71,7 +70,7 @@ export default function OpenOnRegistrarsButton({
   };
 
   return (
-    <div className="flex-1">
+    <>
       <button
         onClick={handleClick}
         title={
@@ -83,7 +82,7 @@ export default function OpenOnRegistrarsButton({
         }
         className={[
           // base look aligned with your Analyse button
-          "w-full py-4 text-base sm:text-lg font-semibold rounded-2xl theme-button",
+          "w-full px-4 py-4 text-base sm:text-lg font-semibold rounded-2xl theme-button",
           "transition active:scale-[0.99]",
           "cursor-pointer",
           className || "",
@@ -91,12 +90,9 @@ export default function OpenOnRegistrarsButton({
       >
         {busy ? "Opening..." : buttonText}
       </button>
-
       {result && (
-        <div className="mt-2 text-sm text-neutral-300/90">
-          {result}
-        </div>
+        <div className="mt-2 text-sm text-neutral-300/90">{result}</div>
       )}
-    </div>
+    </>
   );
 }

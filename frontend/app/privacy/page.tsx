@@ -1,9 +1,17 @@
-"use client"
+"use client";
 
 export default function Privacy() {
   return (
     <main className="w-full px-4 sm:px-6 lg:px-8 py-12 bg-black">
       <div className="mx-auto w-full max-w-3xl">
+        <button
+          className="text-sm text-teal-400 hover:text-teal-300 transition-colors cursor-pointer"
+          onClick={() => {
+            window.history.back();
+          }}
+        >
+          {"<"} Back
+        </button>
         <header className="mb-8 text-center">
           <h1 className="text-3xl sm:text-4xl font-bold text-teal-400">
             Privacy Policy
@@ -16,10 +24,10 @@ export default function Privacy() {
         <section className="backdrop-blur-md bg-opacity-10 bg-white dark:bg-opacity-10 dark:bg-black rounded-2xl p-6 sm:p-8 shadow-lg">
           <div className="space-y-8">
             <p className="leading-relaxed">
-              We respect your privacy. We don&#39;t sell or share personal data. Searches
-              are processed server-side to fetch live availability and pricing from
-              registrars. Registration and payment happen on registrar websites and are
-              subject to their policies.
+              We respect your privacy. We don&#39;t sell or share personal data.
+              Searches are processed server-side to fetch live availability and
+              pricing from registrars. Registration and payment happen on
+              registrar websites and are subject to their policies.
             </p>
 
             <div className="border-t border-opacity-10 pt-6">
@@ -28,12 +36,12 @@ export default function Privacy() {
               </h2>
               <ul className="list-disc pl-5 space-y-2 text-sm opacity-80">
                 <li>
-                  Anonymous event logs like timestamps, provider latency, and error
-                  rates to improve reliability and performance.
+                  Anonymous event logs like timestamps, provider latency, and
+                  error rates to improve reliability and performance.
                 </li>
                 <li>
-                  Aggregated metrics such as success/timeout ratios and median search
-                  time. No user profiles are created.
+                  Aggregated metrics such as success/timeout ratios and median
+                  search time. No user profiles are created.
                 </li>
               </ul>
             </div>
@@ -54,8 +62,9 @@ export default function Privacy() {
                 Cookies and storage
               </h2>
               <p className="text-sm opacity-80">
-                We may use a lightweight cookie or local storage to remember preferences
-                like theme or currency. These do not track you across sites.
+                We may use a lightweight cookie or local storage to remember
+                preferences like theme or currency. These do not track you
+                across sites.
               </p>
             </div>
 
@@ -64,8 +73,8 @@ export default function Privacy() {
                 Data retention
               </h2>
               <p className="text-sm opacity-80">
-                Anonymous logs are kept only as long as necessary for debugging and
-                service quality, then discarded.
+                Anonymous logs are kept only as long as necessary for debugging
+                and service quality, then discarded.
               </p>
             </div>
 
@@ -88,5 +97,5 @@ export default function Privacy() {
         </section>
       </div>
     </main>
-  )
+  );
 }

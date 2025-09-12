@@ -121,7 +121,7 @@ export default function HomePage() {
                 <Button
                   type="submit"
                   size="lg"
-                  className="flex-1 w-full py-7.5 sm:text-lg font-semibold rounded-2xl theme-button transition active:scale-[0.99]"
+                  className="flex-1 w-full py-7 md:py-7.5 sm:text-lg font-semibold rounded-2xl theme-button transition active:scale-[0.99]"
                 >
                   Analyse
                 </Button>

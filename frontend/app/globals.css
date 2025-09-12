@@ -95,11 +95,6 @@ html, body { height: 100%; }
   body { @apply bg-background text-foreground; }
 }
 
-/* Site background gradient for dark */
-body {
-  background: linear-gradient(135deg, #0a2540 0%, #064663 100%);
-}
-
 /* Glass + UI utilities, dark-only */
 @layer utilities {
   .glass-card {

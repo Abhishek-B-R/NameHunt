@@ -1,2 +1,4 @@
 */node_modules
-*/.envbackend/profiles/
+*/.env
+*/backend/profiles/
+*/.git

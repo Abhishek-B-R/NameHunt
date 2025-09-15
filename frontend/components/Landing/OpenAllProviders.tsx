@@ -113,7 +113,8 @@ export default function OpenOnRegistrarsButton({
     return { opened, blocked };
   };
 
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
     if (!domain.trim() || busy) return;
     setOpen(true);
   };

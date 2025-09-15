@@ -155,7 +155,7 @@ export default function HomePage() {
       <FAQ />
 
       <section className="w-full py-10">
-        <div className="mx-auto max-w-5xl glass-card rounded-2xl p-6 text-center">
+        <div className="mx-auto max-w-5xl glass-card-gray rounded-2xl p-6 text-center">
           <h3 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
             Ready to compare prices?
           </h3>

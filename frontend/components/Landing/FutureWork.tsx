@@ -1,7 +1,7 @@
 export default function FutureWork() {
   return (
     <section className="w-full py-12">
-      <div className="mx-auto max-w-5xl glass-card rounded-3xl p-6 sm:p-8">
+      <div className="mx-auto max-w-5xl glass-card-black rounded-3xl p-6 sm:p-8">
         <header className="text-center mb-6 sm:mb-8">
           <h2 className="text-2xl sm:text-3xl font-semibold gradient-text">
             What’s next

@@ -101,6 +101,14 @@ html, body { height: 100%; }
     @apply backdrop-blur-md border bg-white/15 border-white/25 shadow-2xl transition-all duration-300;
   }
 
+  .glass-card-gray {
+    @apply backdrop-blur-md border bg-white/5 border-white/15 shadow-2xl transition-all duration-300;
+  }
+
+  .glass-card-black {
+    @apply backdrop-blur-md border bg-white/3 border-white/5 shadow-2xl transition-all duration-300;
+  }
+
   .glass-input {
     @apply backdrop-blur-md border bg-white/15 border-white/25 text-gray-100 placeholder:text-gray-300 transition-all duration-300 focus:ring-2 focus:ring-teal-500;
   }

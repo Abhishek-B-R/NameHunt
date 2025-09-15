@@ -8,12 +8,10 @@ import type { RunOpts } from "../../types/runOptions.js";
 function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
 }
-
 function freshProfileDir(base = "/tmp") {
   const id = crypto.randomBytes(6).toString("hex");
   return path.join(base, `dc_${id}`);
 }
-
 function parsePrice(text: string) {
   const m =
     text.match(/(₹|Rs\.?|INR|\$|USD|€|EUR|£|GBP)\s*([0-9][\d,]*\.?\d*)/) ||
@@ -44,7 +42,7 @@ export async function checkNetworkSolutions(
 
   const ctx = await newStealthContext({
     profileDir,
-    headless: opts.headless ?? false,
+    headless: opts.headless ?? true,
     locale: opts.locale || "en-US",
     timezoneId: opts.timezoneId || "America/New_York",
     proxy: opts.proxy,
@@ -52,230 +50,273 @@ export async function checkNetworkSolutions(
 
   const page = await ctx.newPage();
 
-  try {
-    const url = `https://www.networksolutions.com/products/domain/domain-search-results?domainName=${encodeURIComponent(
-      domain
-    )}`;
+  // hard ceiling 60 s since page created
+  const PAGE_HARD_MS = 60_000;
+  let finalized = false; // we have produced a result and should stop
+  let pageTimedOut = false;
 
-    await page.goto(url, {
-      waitUntil: "domcontentloaded",
-      timeout: opts.timeoutMs ?? 90000,
-    });
+  const pageWatchdog = setTimeout(async () => {
+    pageTimedOut = true;
+    try {
+      await page.close({ runBeforeUnload: false }).catch(() => {});
+      await ctx.close().catch(() => {});
+    } catch {}
+  }, PAGE_HARD_MS);
 
-    // small human-ish pause
-    await sleep(900 + Math.random() * 600);
+  // Abort controller to cancel pending waits as soon as we finalize
+  const abortController = new AbortController();
+  const { signal } = abortController;
 
-    // Fast path: detect "Not supported" banners and return early
-    const notSupportedVisible =
-      (await page
-        .locator(
-          [
-            ':text("NOT SUPPORTED")',
-            ':text("not supported")',
-            ':text("This domain extension is not supported")',
-            ':text("couldn\'t find any available domains")',
-          ].join(", ")
-        )
-        .first()
-        .isVisible()
-        .catch(() => false)) || false;
-
-    if (notSupportedVisible) {
-      const raw = ((await page.innerText("body").catch(() => "")) || "").slice(
-        0,
-        900
-      );
-      await ctx.close();
-      if (opts.ephemeralProfile !== false) {
-        await fs.remove(profileDir).catch(() => {});
-      }
-      return {
-        ok: true,
-        domain,
-        available: undefined,
-        isPremium: undefined,
-        registrationPrice: undefined,
-        renewalPrice: undefined,
-        currency: "USD",
-        rawText: raw,
-      };
-    }
-
-    // Split domain to match exact card in tile UI
-    const parts = domain.split(".");
-    const tld = "." + parts.pop();
-    const base = parts.join(".");
-
-    // A) Tile UI with domain-base and domain-tld split
-    const tileCard = page
-      .locator(
-        "div.split-container.search-result-section:has(.domain-name-container)"
-      )
-      .filter({
-        has: page
-          .locator(".domain-name-container")
-          .filter({ has: page.locator(`.domain-base:has-text("${base}")`) })
-          .filter({ has: page.locator(`.domain-tld:has-text("${tld}")`) }),
-      })
-      .first();
-
-    // B) Cart-style UI: exact domain text plus “is available for …”
-    const cartCard = page
-      .locator('div:has-text("is available")')
-      .filter({ hasText: domain })
-      .first();
-
-    // Wait for either card type or a general results container
-    await Promise.race([
-      tileCard.waitFor({ timeout: 15000 }).catch(() => {}),
-      cartCard.waitFor({ timeout: 15000 }).catch(() => {}),
-      page
-        .locator(
-          ':text("Add to cart"), :text("ADD TO CART"), :text("is available")'
-        )
-        .first()
-        .waitFor({ timeout: 15000 })
-        .catch(() => {}),
+  // cancellable selector wait helper
+  async function cancellableWait<T>(
+    action: () => Promise<T>,
+    timeoutMs: number
+  ): Promise<T | undefined> {
+    return await Promise.race([
+      action().catch(() => undefined),
+      new Promise<undefined>((resolve) =>
+        setTimeout(() => resolve(undefined), timeoutMs)
+      ),
+      new Promise<undefined>((resolve) => {
+        signal.addEventListener(
+          "abort",
+          () => resolve(undefined),
+          { once: true }
+        );
+      }),
     ]);
+  }
 
-    // Choose whichever is actually visible
-    let card = tileCard;
-    if (!(await tileCard.isVisible().catch(() => false))) {
-      card = cartCard;
-    }
-    if (!(await card.isVisible().catch(() => false))) {
-      // As a final fallback, try any split-container that includes the domain text
-      const anyCard = page
-        .locator("div.split-container.search-result-section")
+  // one guard promise to ensure return at 90 s even if code hangs
+  const guard = new Promise<DCResult>((resolve) =>
+    setTimeout(() => {
+      if (!finalized) resolve({ ok: false, domain, error: "NS blocked: 90s hard timeout" });
+    }, PAGE_HARD_MS)
+  );
+
+  async function scrape(): Promise<DCResult> {
+    try {
+      const url = `https://www.networksolutions.com/products/domain/domain-search-results?domainName=${encodeURIComponent(
+        domain
+      )}`;
+
+      await page.goto(url, {
+        waitUntil: "domcontentloaded",
+        timeout: Math.min(opts.timeoutMs ?? 90_000, PAGE_HARD_MS),
+      });
+
+      await sleep(700 + Math.random() * 500);
+
+      // Early banners
+      const banner = await cancellableWait(
+        () =>
+          page
+            .locator(
+              [
+                ':text("NOT SUPPORTED")',
+                ':text("not supported")',
+                ':text("This domain extension is not supported")',
+                ':text("couldn\'t find any available domains")',
+                ':text("Too many requests")',
+                ':text("rate limit")',
+              ].join(", ")
+            )
+            .first()
+            .isVisible(),
+        8_000
+      );
+
+      if (banner) {
+        const raw = ((await page.innerText("body").catch(() => "")) || "").slice(0, 900);
+        finalized = true;
+        abortController.abort();
+        return {
+          ok: true,
+          domain,
+          available: undefined,
+          isPremium: undefined,
+          registrationPrice: undefined,
+          renewalPrice: undefined,
+          currency: "USD",
+          rawText: raw,
+        };
+      }
+
+      // Prepare locators
+      const parts = domain.split(".");
+      const tld = "." + parts.pop();
+      const base = parts.join(".");
+
+      const tileCard = page
+        .locator(
+          "div.split-container.search-result-section:has(.domain-name-container)"
+        )
+        .filter({
+          has: page
+            .locator(".domain-name-container")
+            .filter({ has: page.locator(`.domain-base:has-text("${base}")`) })
+            .filter({ has: page.locator(`.domain-tld:has-text("${tld}")`) }),
+        })
+        .first();
+
+      const cartCard = page
+        .locator('div:has-text("is available")')
         .filter({ hasText: domain })
         .first();
-      if (await anyCard.isVisible().catch(() => false)) {
+
+      await cancellableWait(
+        () =>
+          Promise.race([
+            tileCard.waitFor({ timeout: 12_000 }),
+            cartCard.waitFor({ timeout: 12_000 }),
+            page
+              .locator(
+                ':text("Add to cart"), :text("ADD TO CART"), :text("is available")'
+              )
+              .first()
+              .waitFor({ timeout: 12_000 }),
+          ]),
+        12_000
+      );
+
+      // Choose visible card
+      let card = tileCard;
+      if (!(await tileCard.isVisible().catch(() => false))) card = cartCard;
+
+      if (!(await card.isVisible().catch(() => false))) {
+        const anyCard = page
+          .locator("div.split-container.search-result-section")
+          .filter({ hasText: domain })
+          .first();
+        if (!(await anyCard.isVisible().catch(() => false))) {
+          finalized = true;
+          abortController.abort();
+          return { ok: false, domain, error: "Result card not found or blocked" };
+        }
         card = anyCard;
-      } else {
-        return { ok: false, domain, error: "Result card not found" };
       }
-    }
 
-    const cardText = (await card.innerText().catch(() => "")) || "";
+      const cardText = (await card.innerText().catch(() => "")) || "";
 
-    // Taken detection across UIs
-    const hasTakenBadge =
-      (await card.locator('.pill .label:has-text("Domain Taken")').count()) > 0;
-    const sentenceTaken = /\bis taken\b/i.test(cardText);
-    const explicitUnavailable =
-      /\bunavailable\b/i.test(cardText) ||
-      /certified offer/i.test(cardText) ||
-      /backorder/i.test(cardText);
-    const taken = hasTakenBadge || sentenceTaken || explicitUnavailable;
+      const hasTakenBadge =
+        (await card.locator('.pill .label:has-text("Domain Taken")').count()) >
+        0;
+      const sentenceTaken = /\bis taken\b/i.test(cardText);
+      const explicitUnavailable =
+        /\bunavailable\b/i.test(cardText) ||
+        /certified offer/i.test(cardText) ||
+        /backorder/i.test(cardText);
+      const taken = hasTakenBadge || sentenceTaken || explicitUnavailable;
 
-    // Premium detection
-    const classAttr = (await card.getAttribute("class")) || "";
-    const isPremium =
-      classAttr.includes("premium") || /(^|\s)Premium(\s|$)/i.test(cardText);
+      const classAttr = (await card.getAttribute("class")) || "";
+      const isPremium =
+        classAttr.includes("premium") || /(^|\s)Premium(\s|$)/i.test(cardText);
 
-    // CTA detection
-    const hasAddToCart =
-      (await card.locator("a:has-text('ADD TO CART')").count()) > 0 ||
-      /ADD TO CART/i.test(cardText);
-    const hasRemoveFromCart =
-      (await card.locator(":text('REMOVE FROM CART')").count()) > 0 ||
-      /REMOVE FROM CART/i.test(cardText);
+      const hasAddToCart =
+        (await card.locator("a:has-text('ADD TO CART')").count()) > 0 ||
+        /ADD TO CART/i.test(cardText);
+      const hasRemoveFromCart =
+        (await card.locator(":text('REMOVE FROM CART')").count()) > 0 ||
+        /REMOVE FROM CART/i.test(cardText);
 
-    // If taken, return immediately with no price wait
-    if (taken) {
-      await ctx.close();
-      if (opts.ephemeralProfile !== false) {
-        await fs.remove(profileDir).catch(() => {});
+      if (taken) {
+        finalized = true;
+        abortController.abort();
+        return {
+          ok: true,
+          domain,
+          available: false,
+          isPremium: isPremium || undefined,
+          registrationPrice: undefined,
+          renewalPrice: undefined,
+          currency: "USD",
+          rawText: cardText.slice(0, 900),
+        };
       }
+
+      // Price extraction with small, cancellable waits
+      let priceText = "";
+
+      if (await tileCard.isVisible().catch(() => false)) {
+        const bold = tileCard.locator(".status b").first();
+        if (await bold.isVisible().catch(() => false)) {
+          priceText = (await cancellableWait(() => bold.innerText(), 2_000)) || "";
+        }
+        if (!priceText) {
+          const status = tileCard.locator(".status").first();
+          if (await status.isVisible().catch(() => false)) {
+            priceText = (await cancellableWait(() => status.innerText(), 2_000)) || "";
+          }
+        }
+      }
+
+      if (!priceText && (await cartCard.isVisible().catch(() => false))) {
+        const sentence = (await cancellableWait(() => cartCard.innerText(), 2_000)) || "";
+        const match =
+          sentence.match(
+            /(is\s+available\s+for[^$₹€£]*(₹|Rs\.?|INR|\$|USD|€|EUR|£|GBP)\s*[0-9][\d,]*\.?\d*)/i
+          ) ||
+          sentence.match(/(₹|Rs\.?|INR|\$|USD|€|EUR|£|GBP)\s*[0-9][\d,]*\.?\d*/);
+        priceText = match ? match[0] : "";
+      }
+
+      if (!priceText) {
+        const anyPrice =
+          (await cancellableWait(
+            () =>
+              card
+                .locator("strong, b, span, div")
+                .filter({ hasText: /\$|USD|₹|INR|€|EUR|£|GBP/ })
+                .first()
+                .innerText(),
+            2_000
+          )) || "";
+        priceText = anyPrice;
+      }
+
+      const reg = parsePrice(priceText);
+      const available = hasAddToCart || hasRemoveFromCart;
+
+      const renewMatch =
+        cardText.match(
+          /renews?\s+at[^0-9]*(₹|Rs\.?|INR|\$|USD|€|EUR|£|GBP)\s*([\d,\.]+)/i
+        ) ||
+        cardText.match(
+          /renewal[^0-9]*(₹|Rs\.?|INR|\$|USD|€|EUR|£|GBP)\s*([\d,\.]+)/i
+        );
+      const renewalPrice = renewMatch
+        ? parseFloat((renewMatch[2] || "").replace(/[^\d.]/g, ""))
+        : undefined;
+
+      finalized = true;
+      abortController.abort();
       return {
         ok: true,
         domain,
-        available: false,
-        isPremium: isPremium || undefined,
-        registrationPrice: undefined,
-        renewalPrice: undefined,
-        currency: "USD",
+        available,
+        isPremium: isPremium || (reg.amount ? reg.amount > 100 : undefined),
+        registrationPrice: reg.amount,
+        renewalPrice,
+        currency: reg.currency || "USD",
         rawText: cardText.slice(0, 900),
       };
-    }
-
-    // Otherwise read price from the exact card
-    let priceText = "";
-
-    // Tile UI: price in .status b or .status
-    if (await tileCard.isVisible().catch(() => false)) {
-      const bold = tileCard.locator(".status b").first();
-      if (await bold.isVisible().catch(() => false)) {
-        priceText = (await bold.innerText().catch(() => "")) || "";
+    } catch (e: any) {
+      finalized = true;
+      abortController.abort();
+      return { ok: false, domain, error: e?.message || "Navigation failed" };
+    } finally {
+      clearTimeout(pageWatchdog);
+      // If page already timed out, we already closed resources in watchdog
+      if (!pageTimedOut) {
+        await page.close().catch(() => {});
+        await ctx.close().catch(() => {});
       }
-      if (!priceText) {
-        const status = tileCard.locator(".status").first();
-        if (await status.isVisible().catch(() => false)) {
-          priceText = (await status.innerText().catch(() => "")) || "";
-        }
+      if (opts.ephemeralProfile !== false) {
+        await fs.remove(profileDir).catch(() => {});
       }
     }
-
-    // Cart UI: “is available for $X …” sentence
-    if (!priceText && (await cartCard.isVisible().catch(() => false))) {
-      const sentence = (await cartCard.innerText().catch(() => "")) || "";
-      const match =
-        sentence.match(
-          /(is\s+available\s+for[^$₹€£]*(₹|Rs\.?|INR|\$|USD|€|EUR|£|GBP)\s*[0-9][\d,]*\.?\d*)/i
-        ) ||
-        sentence.match(/(₹|Rs\.?|INR|\$|USD|€|EUR|£|GBP)\s*[0-9][\d,]*\.?\d*/);
-      priceText = match ? match[0] : "";
-    }
-
-    // Last resort: any currency-looking node inside this card
-    if (!priceText) {
-      const anyPrice =
-        (await card
-          .locator("strong, b, span, div")
-          .filter({ hasText: /\$|USD|₹|INR|€|EUR|£|GBP/ })
-          .first()
-          .innerText()
-          .catch(() => "")) || "";
-      priceText = anyPrice;
-    }
-
-    const reg = parsePrice(priceText);
-    const available = hasAddToCart || hasRemoveFromCart;
-
-    // Optional renewal detection in card text
-    const renewMatch =
-      cardText.match(
-        /renews?\s+at[^0-9]*(₹|Rs\.?|INR|\$|USD|€|EUR|£|GBP)\s*([\d,\.]+)/i
-      ) ||
-      cardText.match(
-        /renewal[^0-9]*(₹|Rs\.?|INR|\$|USD|€|EUR|£|GBP)\s*([\d,\.]+)/i
-      );
-    const renewalPrice = renewMatch
-      ? parseFloat((renewMatch[2] || "").replace(/[^\d.]/g, ""))
-      : undefined;
-
-    await ctx.close();
-    if (opts.ephemeralProfile !== false) {
-      await fs.remove(profileDir).catch(() => {});
-    }
-
-    return {
-      ok: true,
-      domain,
-      available,
-      isPremium: isPremium || (reg.amount ? reg.amount > 100 : undefined),
-      registrationPrice: reg.amount,
-      renewalPrice,
-      currency: reg.currency || "USD",
-      rawText: cardText.slice(0, 900),
-    };
-  } catch (e: any) {
-    try {
-      await ctx.close();
-    } catch {}
-    if (opts.ephemeralProfile !== false) {
-      await fs.remove(profileDir).catch(() => {});
-    }
-    return { ok: false, domain, error: e?.message || "Navigation failed" };
   }
+
+  // Ensure we never outlive 90s
+  return await Promise.race([scrape(), guard]);
 }

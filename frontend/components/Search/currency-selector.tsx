@@ -1,12 +1,14 @@
-"use client"
-import { ChevronDown } from "lucide-react"
-import { Button } from "@/components/ui/button"
+"use client";
+
+import { useEffect } from "react";
+import { ChevronDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/components/ui/dropdown-menu";
 
 const currencies = [
   { code: "USD", symbol: "$", name: "US Dollar" },
@@ -19,19 +21,48 @@ const currencies = [
   { code: "CNY", symbol: "¥", name: "Chinese Yuan" },
   { code: "INR", symbol: "₹", name: "Indian Rupee" },
   { code: "KRW", symbol: "₩", name: "South Korean Won" },
-]
+];
 
 interface CurrencySelectorProps {
-  selectedCurrency: string
-  onCurrencyChange: (currency: string) => void
+  selectedCurrency: string;
+  onCurrencyChange: (currency: string) => void;
 }
+
+const LS_KEY = "nh_selected_currency";
 
 export function CurrencySelector({
   selectedCurrency,
   onCurrencyChange,
 }: CurrencySelectorProps) {
+  // On mount, restore saved currency if present
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(LS_KEY);
+      if (saved) {
+        const code = saved.toUpperCase();
+        if (currencies.some((c) => c.code === code) && code !== selectedCurrency) {
+          onCurrencyChange(code);
+        }
+      }
+    } catch {
+      // ignore storage errors
+    }
+    // run only once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const currentCurrency =
-    currencies.find((c) => c.code === selectedCurrency) ?? currencies[0]
+    currencies.find((c) => c.code === (selectedCurrency || "USD")) ||
+    currencies[0];
+
+  const handleChange = (code: string) => {
+    onCurrencyChange(code);
+    try {
+      localStorage.setItem(LS_KEY, code);
+    } catch {
+      // ignore storage errors
+    }
+  };
 
   return (
     <DropdownMenu>
@@ -52,11 +83,11 @@ export function CurrencySelector({
         className="glass-card border-0 bg-gray-900/80 backdrop-blur-md"
       >
         {currencies.map((currency) => {
-          const active = currency.code === currentCurrency.code
+          const active = currency.code === currentCurrency.code;
           return (
             <DropdownMenuItem
               key={currency.code}
-              onClick={() => onCurrencyChange(currency.code)}
+              onClick={() => handleChange(currency.code)}
               className={`cursor-pointer hover:bg-white/10 ${
                 active ? "bg-white/5" : ""
               }`}
@@ -65,9 +96,9 @@ export function CurrencySelector({
               <span className="font-medium">{currency.code}</span>
               <span className="ml-2 text-gray-400">{currency.name}</span>
             </DropdownMenuItem>
-          )
+          );
         })}
       </DropdownMenuContent>
     </DropdownMenu>
-  )
+  );
 }

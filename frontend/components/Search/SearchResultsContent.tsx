@@ -208,7 +208,7 @@ export default function SearchResultsContent() {
                 variant="ghost"
                 size="sm"
                 onClick={() => router.push("/")}
-                className="text-gray-100 hover:bg:white/10"
+                className="text-teal-400 border-1 p-4 hover:bg:white/10"
               >
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back
@@ -254,7 +254,7 @@ export default function SearchResultsContent() {
                     variant="outline"
                     size="sm"
                     onClick={() => router.push("/")}
-                    className="border-white/10 bg-white/10 text-gray-100 hover:bg-white/20"
+                    className="border-white/10 bg-white/10 text-teal-400 hover:bg-white/20"
                   >
                     Try New Domain
                   </Button>
@@ -277,7 +277,7 @@ export default function SearchResultsContent() {
             <p className="text-gray-400">
               Searching for:{" "}
               <span className="font-semibold text-teal-400">
-                {initialQRef.current}
+                {domain}
               </span>
             </p>
           </div>

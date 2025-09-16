@@ -104,23 +104,23 @@ const providerMap: Record<
   (domain: string) => Promise<DCResult>
 > = {
   [ProviderNames.GODADDY]: (domain) =>
-    checkGoDaddy(domain, { headless: false, ephemeralProfile: true }),
+    checkGoDaddy(domain, { headless: true, ephemeralProfile: true }),
   [ProviderNames.NAMECHEAP]: (domain) =>
-    checkNamecheap(domain, { headless: false, ephemeralProfile: true }),
+    checkNamecheap(domain, { headless: true, ephemeralProfile: true }),
   [ProviderNames.SQUARESPACE]: (domain) =>
-    checkSquarespace(domain, { headless: false, ephemeralProfile: true }),
+    checkSquarespace(domain, { headless: true, ephemeralProfile: true }),
   [ProviderNames.IONOS]: (domain) =>
-    checkDomainIONOS(domain, { headless: false, ephemeralProfile: true }),
+    checkDomainIONOS(domain, { headless: true, ephemeralProfile: true }),
   [ProviderNames.NETWORKSOLUTIONS]: (domain) =>
-    checkNetworkSolutions(domain, { headless: false, ephemeralProfile: true }),
+    checkNetworkSolutions(domain, { headless: true, ephemeralProfile: true }),
   [ProviderNames.DYNADOT]: (domain) =>
-    checkDynadot(domain, { headless: false, ephemeralProfile: true }),
+    checkDynadot(domain, { headless: true, ephemeralProfile: true }),
   [ProviderNames.HOVER]: (domain) =>
-    checkDomainHover(domain, { headless: false, ephemeralProfile: true }),
+    checkDomainHover(domain, { headless: true, ephemeralProfile: true }),
   [ProviderNames.PORKBUN]: (domain) =>
-    checkDomainPorkbun(domain, { headless: false, ephemeralProfile: true }),
+    checkDomainPorkbun(domain, { headless: true, ephemeralProfile: true }),
   [ProviderNames.SPACESHIP]: (domain) =>
-    checkDomainSpaceship(domain, { headless: false, ephemeralProfile: true }),
+    checkDomainSpaceship(domain, { headless: true, ephemeralProfile: true }),
 
   // SDK adapters
   [ProviderNames.HOSTINGER]: (domain) => checkHostingerDC(domain),

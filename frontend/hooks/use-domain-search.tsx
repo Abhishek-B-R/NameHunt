@@ -117,7 +117,7 @@ export function useDomainSearch() {
           prev.results.length === 0 ? "No response from server" : prev.error,
       }))
       cleanup()
-    }, 30000)
+    }, 180_000)
   }, [cleanup])
 
   const startSearch = useCallback(
@@ -293,7 +293,7 @@ export function useDomainSearch() {
                 : prev.error,
           }))
           cleanup()
-        }, 50000)
+        }, 100_000)
       } catch (error) {
         console.error("Failed to create SSE connection:", error)
         setState((prev) => ({

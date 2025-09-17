@@ -1,6 +1,7 @@
 import { chromium, type Browser } from "playwright";
 import pLimit from "p-limit";
 import { createClient } from "redis";
+import { getRedisUrl } from "./redisConnection.js";
 import { ProviderNames } from "./types/providerNames.js";
 import type { DCResult } from "./types/resultSchema.js";
 
@@ -73,10 +74,12 @@ let redisClient: RedisClient | null = null;
 
 async function getRedis(): Promise<RedisClient | null> {
   if (redisClient) return redisClient;
+
   const url =
     process.env.REDIS_URL ||
     process.env.REDIS_CONNECTION_STRING ||
-    "redis://localhost:6379";
+    getRedisUrl();
+
   try {
     const client = createClient({ url });
     client.on("error", (err) => {
@@ -90,7 +93,6 @@ async function getRedis(): Promise<RedisClient | null> {
     return null;
   }
 }
-
 function cacheKey(provider: string, domain: string) {
   const d = domain.trim().toLowerCase();
   return `dc:${provider}:${d}`;

@@ -1,16 +1,15 @@
 import { QueueEvents } from "bullmq";
+import { getRedisUrl } from "./redisConnection.js";
 
 export function createRequestQueueEvents(queueName: string) {
-  const connection = {
-    host: process.env.REDIS_HOST || "127.0.0.1",
-    port: Number(process.env.REDIS_PORT || 6379),
-    username: process.env.REDIS_USERNAME || undefined,
-    password: process.env.REDIS_PASSWORD || undefined,
-    db: Number(process.env.REDIS_DB || 0),
-    maxRetriesPerRequest: null as unknown as null,
-    enableReadyCheck: false,
-  };
-  const qe = new QueueEvents(queueName, { connection });
+  const qe = new QueueEvents(queueName, {
+    connection: {
+      url: getRedisUrl(),
+      // BullMQ/ioredis stability flags
+      maxRetriesPerRequest: null as any,
+      enableReadyCheck: false,
+    },
+  });
   qe.setMaxListeners(1000);
   return qe;
 }

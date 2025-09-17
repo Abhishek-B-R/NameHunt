@@ -289,11 +289,11 @@ export function useDomainSearch() {
             isComplete: true,
             error:
               prev.results.length === 0
-                ? "Search timed out with no results"
+                ? "Search timed out with no results, maybe there is a huge traffic querying our single backend, please check after some time, or click on Compare Manually button and do manual comparison"
                 : prev.error,
           }))
           cleanup()
-        }, 100_000)
+        }, 500_000)
       } catch (error) {
         console.error("Failed to create SSE connection:", error)
         setState((prev) => ({

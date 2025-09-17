@@ -1,20 +1,15 @@
-// queue.ts
 import { Queue, Worker, QueueEvents, type JobsOptions } from "bullmq";
 import { ProviderNames } from "./types/providerNames.js";
 import { runBrowsingProvider } from "./browsing.js";
 import { EventEmitter } from "node:events";
+import { getRedisUrl } from "./redisConnection.js";
+
 EventEmitter.defaultMaxListeners = 1000;
 
-// Use BullMQ connection options object. Do NOT construct ioredis yourself here.
+// Single connection config used everywhere
 const connection = {
-  host: process.env.REDIS_HOST || "127.0.0.1",
-  port: Number(process.env.REDIS_PORT || 6379),
-  username: process.env.REDIS_USERNAME || undefined,
-  password: process.env.REDIS_PASSWORD || undefined,
-  db: Number(process.env.REDIS_DB || 0),
-
-  // Required by BullMQ when using blocking connections:
-  maxRetriesPerRequest: null as unknown as null,
+  url: getRedisUrl(),
+  maxRetriesPerRequest: null as any,
   enableReadyCheck: false,
 };
 
@@ -30,7 +25,6 @@ export const providerQueue = new Queue("provider-checks", {
 });
 
 // raise listener cap on this Queue instance
-// some typings don’t include setMaxListeners, so cast if needed
 (providerQueue as any).setMaxListeners?.(1000);
 
 export const providerEvents = new QueueEvents("provider-checks", { connection });

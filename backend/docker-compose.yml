@@ -1,0 +1,22 @@
+services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+
+  backend:
+    build: .
+    depends_on:
+      - redis
+    environment:
+      REDIS_URL: redis://redis:6379
+      PORT: "8080"
+      NODE_ENV: production
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
+    ports:
+      - "127.0.0.1:8080:8080"
+    restart: unless-stopped
+    shm_size: "1g"
+    security_opt:
+      - seccomp=unconfined

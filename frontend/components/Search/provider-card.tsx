@@ -181,7 +181,7 @@ export function ProviderCard({
             <span className="text-muted-foreground">Raw</span>
             <div className="mt-1 rounded bg-muted p-2">
               <code className="text-xs break-words">{raw}</code>
-              <div className="mt-5">We might be having some temporary failures, please check official website for pricing details. Click on &quot;Visit Site&quot; button</div>
+              {/* <div className="mt-5">We might be having some temporary failures, please check official website for pricing details. Click on &quot;Visit Site&quot; button</div> */}
             </div>
           </div>
         )}

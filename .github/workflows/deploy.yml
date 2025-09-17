@@ -38,7 +38,7 @@ jobs:
           port: 22
           script: |
             set -e
-            cd ./NameHunt
+            cd /home/${{ secrets.SSH_USER }}/NameHunt
             docker compose pull
             docker compose up -d --build
             docker image prune -a -f

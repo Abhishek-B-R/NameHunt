@@ -26,5 +26,4 @@ services:
       - seccomp=unconfined
 
 # your username set here
-
-# echo 'DOCKER_USERNAME=yourusername' > /home/azureuser/namehunt/.env
+# echo 'DOCKER_USERNAME=yourusername' > /home/azureuser/NameHunt/.env

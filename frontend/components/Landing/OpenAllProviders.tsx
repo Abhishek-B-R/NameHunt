@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -70,6 +71,7 @@ export default function OpenOnRegistrarsButton({
 }: Props) {
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
+  const [showPermissionDialog, setShowPermissionDialog] = useState(false);
   const [selected, setSelected] = useState<Record<ProviderKey, boolean>>(() =>
     getDefaultSelection()
   );
@@ -97,20 +99,31 @@ export default function OpenOnRegistrarsButton({
       .map((key) => ({ key, url: `${providerWebsites[key]}${encoded}` }));
   }, [domain, selected]);
 
-  const openMany = async (targets: { key: ProviderKey; url: string }[]) => {
+  // Unchanged behavior, plus detect if the first popup was blocked
+  const openMany = async (
+    targets: { key: ProviderKey; url: string }[]
+  ): Promise<{ opened: number; blocked: number; firstBlocked: boolean }> => {
     let opened = 0;
     let blocked = 0;
+    let firstBlocked = false;
+
     for (let i = 0; i < targets.length; i++) {
       try {
         const w = window.open(targets[i].url, "_blank", "noopener,noreferrer");
-        if (w && !w.closed) opened++;
-        else blocked++;
+        if (w && !w.closed) {
+          opened++;
+        } else {
+          blocked++;
+          if (i === 0) firstBlocked = true;
+        }
       } catch {
         blocked++;
+        if (i === 0) firstBlocked = true;
       }
+      // Small stagger to avoid aggressive popup blockers
       await new Promise((r) => setTimeout(r, 100));
     }
-    return { opened, blocked };
+    return { opened, blocked, firstBlocked };
   };
 
   const handleClick = (e: React.MouseEvent) => {
@@ -139,6 +152,7 @@ export default function OpenOnRegistrarsButton({
   const onCancel = () => setOpen(false);
 
   const onOk = async () => {
+    if (!domain.trim()) return;
     try {
       localStorage.setItem(LS_KEY, JSON.stringify(selected));
       localStorage.setItem(LS_SEEN, "1");
@@ -149,8 +163,12 @@ export default function OpenOnRegistrarsButton({
     if (chosen.length === 0) return;
 
     setBusy(true);
-    await openMany(chosen);
+    const result = await openMany(chosen);
     setBusy(false);
+
+    if (result.firstBlocked) {
+      setShowPermissionDialog(true);
+    }
   };
 
   const selectedCount = useMemo(
@@ -167,15 +185,9 @@ export default function OpenOnRegistrarsButton({
           "transition active:scale-[0.99]",
           className || "",
         ].join(" ")}
-        title={
-          !domain.trim() ? "Enter a domain first" : "Compare on registrars"
-        }
+        title={!domain.trim() ? "Enter a domain first" : "Compare on registrars"}
       >
-        {busy
-          ? "Opening..."
-          : selectedCount > 0
-          ? `${buttonText}`
-          : buttonText}
+        {busy ? "Opening..." : buttonText}
       </button>
 
       {open && (
@@ -186,8 +198,7 @@ export default function OpenOnRegistrarsButton({
             </h3>
             <p className="text-medium-contrast text-sm mb-4">
               We will open the selected registrar search pages for
-              <span className="font-semibold"> {domain} </span>
-              in new tabs.
+              <span className="font-semibold"> {domain} </span> in new tabs.
             </p>
 
             <div className="rounded-xl border border-white/14 bg-black px-4 py-3 mb-4">
@@ -195,17 +206,16 @@ export default function OpenOnRegistrarsButton({
               <ul className="list-disc pl-5 text-sm text-subtle-contrast mt-1 space-y-1">
                 <li>Browsers often block multiple popups by default.</li>
                 <li>
-                  When prompted, click the popup icon in the address bar and
+                  If prompted, click the popup icon in the address bar and
                   allow popups for this site.
                 </li>
-                <li>You can choose exactly which providers to open below.</li>
+                <li>Select exactly which providers to open below.</li>
               </ul>
             </div>
 
             <div className="mb-3 flex items-center justify-between">
               <div className="text-sm text-subtle-contrast">
-                Selected {selectedCount} of{" "}
-                {Object.keys(providerWebsites).length}
+                Selected {selectedCount} of {Object.keys(providerWebsites).length}
               </div>
               <div className="flex gap-2">
                 <button
@@ -250,10 +260,74 @@ export default function OpenOnRegistrarsButton({
               </button>
               <button
                 type="button"
-                className="px-4 py-2 rounded-xl font-semibold bg-teal-500 hover:bg-teal-600 text-white shadow-lg hover:shadow-xl "
+                className="px-4 py-2 rounded-xl font-semibold bg-teal-500 hover:bg-teal-600 text-white shadow-lg hover:shadow-xl"
                 onClick={onOk}
               >
                 OK
+              </button>
+            </div>
+          </div>
+        </Dialog>
+      )}
+
+      {showPermissionDialog && (
+        <Dialog onClose={() => setShowPermissionDialog(false)}>
+          <div className="text-foreground">
+            <h3 className="text-xl md:text-2xl font-semibold text-teal-400 mb-2 text-center">
+              Popup permission required
+            </h3>
+
+            <p className="text-sm md:text-base text-white/80 mb-3 text-center">
+              Enable popups to open registrar websites in new tabs.
+            </p>
+
+            <div className="rounded-xl bg-black border border-white/10 p-3">
+              <h4 className="font-semibold text-teal-400 mb-3 text-sm md:text-base text-center">
+                How to allow popups
+              </h4>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="rounded-lg p-2 border border-white/10 bg-black">
+                  <p className="text-xs md:text-sm text-white/80 mb-2 font-medium">
+                    Method 1: Popup notification
+                  </p>
+                  <div className="h-44 md:h-56 w-full overflow-hidden rounded border border-white/10 bg-black">
+                    <img
+                      src="/popup.png"
+                      alt="Browser popup notification"
+                      className="h-full w-full object-contain"
+                    />
+                  </div>
+                </div>
+
+                <div className="rounded-lg p-2 border border-white/10 bg-black">
+                  <p className="text-xs md:text-sm text-white/80 mb-2 font-medium">
+                    Method 2: Site settings
+                  </p>
+                  <div className="h-44 md:h-56 w-full overflow-hidden rounded border border-white/10 bg-black">
+                    <img
+                      src="/popup2.png"
+                      alt="Site settings popup toggle"
+                      className="h-full w-full object-contain"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 mt-8">
+              <button
+                type="button"
+                className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-sm"
+                onClick={() => setShowPermissionDialog(false)}
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                className="px-4 py-2 rounded-xl font-semibold bg-teal-600 hover:bg-teal-600 text-white text-sm"
+              >
+                If it still doesn’t work, follow the steps above and reload
               </button>
             </div>
           </div>

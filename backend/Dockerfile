@@ -2,7 +2,7 @@
 FROM mcr.microsoft.com/playwright:v1.55.0-jammy
 
 # Set workdir
-WORKDIR /app
+WORKDIR /app 
 
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@10.15.1 --activate

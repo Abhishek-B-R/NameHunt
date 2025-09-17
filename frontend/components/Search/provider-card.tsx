@@ -16,9 +16,9 @@ function safeText(val: unknown): string | undefined {
   }
 }
 
-function truncate(s: string, n = 220) {
-  return s.length > n ? s.slice(0, n) + "..." : s
-}
+// function truncate(s: string, n = 220) {
+//   return s.length > n ? s.slice(0, n) + "..." : s
+// }
 
 function getCurrencySymbol(currency: string | undefined) {
   const symbols: Record<string, string> = {
@@ -81,7 +81,7 @@ export function ProviderCard({
   const price = formatConverted(result.registrationPrice)
   const renewal = formatConverted(result.renewalPrice)
 
-  const raw = result.rawText ? truncate(String(result.rawText)) : undefined
+  // const raw = result.rawText ? truncate(String(result.rawText)) : undefined
   const err = safeText(result.error)
 
   return (
@@ -168,23 +168,22 @@ export function ProviderCard({
 
         {err && (
           <div className="pt-1">
-            <span className="text-muted-foreground">Error</span>
+            {/* <span className="text-muted-foreground">Error</span>
             <div className="mt-1 rounded bg-red-500/10 text-red-700 dark:text-red-300 p-2">
               <code className="text-xs break-words">{truncate(err, 300)}</code>
-            </div>
+            </div> */}
             <div className="mt-5 bg-red-500/20 p-2">We might be having some temporary failures, please check official website for pricing details. Click on &quot;Visit Site&quot; button</div>
           </div>
         )}
 
-        {raw && !err && (
+        {/* {raw && !err && (
           <div className="pt-1">
             <span className="text-muted-foreground">Raw</span>
             <div className="mt-1 rounded bg-muted p-2">
               <code className="text-xs break-words">{raw}</code>
-              {/* <div className="mt-5">We might be having some temporary failures, please check official website for pricing details. Click on &quot;Visit Site&quot; button</div> */}
             </div>
           </div>
-        )}
+        )} */}
       </CardContent>
     </Card>
   )

@@ -1,3 +1,5 @@
+# this docker compose file is used for development
+
 services:
   redis:
     image: redis:7-alpine

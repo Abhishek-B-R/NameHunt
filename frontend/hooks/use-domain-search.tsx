@@ -148,7 +148,7 @@ export function useDomainSearch() {
 
       const validatedDomain = validation.data!
       const providers = requestedProviders.join(",")
-      const url = `http://localhost:8080/search/stream?domain=${encodeURIComponent(
+      const url = `https://api.namehunt.tech/search/stream?domain=${encodeURIComponent(
         validatedDomain
       )}&timeoutMs=180000&providers=${providers}`
 

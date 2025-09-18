@@ -63,6 +63,7 @@ const PROVIDER_LABELS: Record<ProviderKey, string> = {
 
 const LS_KEY = "nh_selected_providers_v1";
 const LS_SEEN = "nh_seen_popup_instructions_v1";
+const LS_HIDE_HELP = "nh_hide_popup_help_v1";
 
 export default function OpenOnRegistrarsButton({
   className,
@@ -75,6 +76,14 @@ export default function OpenOnRegistrarsButton({
   const [selected, setSelected] = useState<Record<ProviderKey, boolean>>(() =>
     getDefaultSelection()
   );
+  const [dontShowAgain, setDontShowAgain] = useState(false);
+
+  const closePermissionDialog = () => {
+    try {
+      if (dontShowAgain) localStorage.setItem(LS_HIDE_HELP, "1");
+    } catch {}
+    setShowPermissionDialog(false);
+  };
 
   useEffect(() => {
     try {
@@ -166,8 +175,16 @@ export default function OpenOnRegistrarsButton({
     const result = await openMany(chosen);
     setBusy(false);
 
-    if (result.firstBlocked) {
+    if (result.firstBlocked && !shouldHidePopupHelp()) {
       setShowPermissionDialog(true);
+    }
+  };
+
+  const shouldHidePopupHelp = () => {
+    try {
+      return localStorage.getItem(LS_HIDE_HELP) === "1";
+    } catch {
+      return false;
     }
   };
 
@@ -185,7 +202,9 @@ export default function OpenOnRegistrarsButton({
           "transition active:scale-[0.99]",
           className || "",
         ].join(" ")}
-        title={!domain.trim() ? "Enter a domain first" : "Compare on registrars"}
+        title={
+          !domain.trim() ? "Enter a domain first" : "Compare on registrars"
+        }
       >
         {busy ? "Opening..." : buttonText}
       </button>
@@ -206,8 +225,8 @@ export default function OpenOnRegistrarsButton({
               <ul className="list-disc pl-5 text-sm text-subtle-contrast mt-1 space-y-1">
                 <li>Browsers often block multiple popups by default.</li>
                 <li>
-                  If prompted, click the popup icon in the address bar and
-                  allow popups for this site.
+                  If prompted, click the popup icon in the address bar and allow
+                  popups for this site.
                 </li>
                 <li>Select exactly which providers to open below.</li>
               </ul>
@@ -215,7 +234,8 @@ export default function OpenOnRegistrarsButton({
 
             <div className="mb-3 flex items-center justify-between">
               <div className="text-sm text-subtle-contrast">
-                Selected {selectedCount} of {Object.keys(providerWebsites).length}
+                Selected {selectedCount} of{" "}
+                {Object.keys(providerWebsites).length}
               </div>
               <div className="flex gap-2">
                 <button
@@ -271,7 +291,7 @@ export default function OpenOnRegistrarsButton({
       )}
 
       {showPermissionDialog && (
-        <Dialog onClose={() => setShowPermissionDialog(false)}>
+        <Dialog onClose={closePermissionDialog}>
           <div className="text-foreground">
             <h3 className="text-xl md:text-2xl font-semibold text-teal-400 mb-2 text-center">
               Popup permission required
@@ -313,19 +333,31 @@ export default function OpenOnRegistrarsButton({
                   </div>
                 </div>
               </div>
+
+              {/* Don't show again toggle */}
+              <label className="mt-4 flex items-center gap-2 select-none cursor-pointer text-sm text-white/80">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 accent-teal-500"
+                  checked={dontShowAgain}
+                  onChange={(e) => setDontShowAgain(e.target.checked)}
+                />
+                <span>Don’t show this again</span>
+              </label>
             </div>
 
             <div className="flex items-center justify-end gap-2 mt-8">
               <button
                 type="button"
                 className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-sm"
-                onClick={() => setShowPermissionDialog(false)}
+                onClick={closePermissionDialog}
               >
                 Close
               </button>
               <button
                 type="button"
                 className="px-4 py-2 rounded-xl font-semibold bg-teal-600 hover:bg-teal-600 text-white text-sm"
+                onClick={closePermissionDialog}
               >
                 If it still doesn’t work, follow the steps above and reload
               </button>

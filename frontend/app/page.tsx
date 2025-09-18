@@ -13,9 +13,11 @@ import DarkVeil from "@/components/ui/DarkVeil";
 import { FAQ } from "@/components/Landing/AccordianSection";
 import OpenOnRegistrarsButton from "@/components/Landing/OpenAllProviders";
 import FutureWork from "@/components/Landing/FutureWork";
+import DemoDialog from "@/components/Landing/YoutubeDemo";
 
 export default function HomePage() {
   const [domain, setDomain] = useState("");
+  const [demoOpen, setDemoOpen] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const router = useRouter();
   const searchRef = useRef<HTMLInputElement>(null);
@@ -140,6 +142,17 @@ export default function HomePage() {
               <ShieldCheck className="h-4 w-4" />
               <span>No markup. Transparent prices only</span>
             </div>
+
+            {/* Watch demo button under CTAs */}
+            <div className="mt-6 flex justify-center">
+              <button
+                type="button"
+                onClick={() => setDemoOpen(true)}
+                className="inline-flex items-center gap-2 rounded-xl px-30 py-2 text-sm font-semibold bg-white/10 hover:bg-white/15 transition"
+              >
+                Watch demo
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -170,7 +183,12 @@ export default function HomePage() {
           </Button>
         </div>
       </section>
-
+      <DemoDialog
+        open={demoOpen}
+        onClose={() => setDemoOpen(false)}
+        videoId="D8elKuAqoT8"
+        title="NameHunt demo"
+      />
       <FutureWork />
     </div>
   );

@@ -122,10 +122,10 @@ export function useDomainSearch() {
 
   const startSearch = useCallback(
     (domain: string) => {
-      const q = domain?.trim() ?? ""
-      if (!q) return
+      const q = domain?.trim() ?? "";
+      if (!q) return;
 
-      const validation = validateDomain(q)
+      const validation = validateDomain(q);
       if (!validation.success) {
         setState({
           results: [],
@@ -133,61 +133,62 @@ export function useDomainSearch() {
           isComplete: true,
           error: validation.error || "Invalid domain format",
           progress: 0,
-        })
-        return
+        });
+        return;
       }
 
-      cleanup()
+      cleanup();
       setState({
         results: [],
         isLoading: true,
         isComplete: false,
         error: null,
         progress: 0,
-      })
+      });
 
-      const validatedDomain = validation.data!
-      const providers = requestedProviders.join(",")
-      const url = `https://api.namehunt.tech/search/stream?domain=${encodeURIComponent(
+      const validatedDomain = validation.data!;
+      const providers = requestedProviders.join(",");
+
+      // Use the Next.js proxy route so the secret header is added server-side
+      const url = `/api/search/stream?domain=${encodeURIComponent(
         validatedDomain
-      )}&timeoutMs=180000&providers=${providers}`
+      )}&timeoutMs=180000&providers=${encodeURIComponent(providers)}`;
 
       try {
-        const es = new EventSource(url)
-        eventSourceRef.current = es
+        // Keep using SSE via EventSource against your proxy route
+        const es = new EventSource(url);
+        eventSourceRef.current = es;
 
         es.onopen = () => {
-          console.log("SSE connection opened")
-          setState((p) => ({ ...p, error: null }))
-          bumpIdleTimer()
-        }
+          console.log("SSE connection opened");
+          setState((p) => ({ ...p, error: null }));
+          bumpIdleTimer();
+        };
 
-        // Your server uses named events; keep default messages only for diagnostics
+        // Default message event for diagnostics
         es.onmessage = (event) => {
-          console.log("default message event:", event.data)
-          bumpIdleTimer()
-        }
+          console.log("default message event:", event.data);
+          bumpIdleTimer();
+        };
 
         es.addEventListener("init", (event) => {
           try {
-            const data = JSON.parse((event as MessageEvent).data) as InitEvent
+            const data = JSON.parse((event as MessageEvent).data) as InitEvent;
             initProvidersRef.current = Array.isArray(data.providers)
               ? data.providers
-              : null
-            console.log("init:", data)
-            bumpIdleTimer()
+              : null;
+            console.log("init:", data);
+            bumpIdleTimer();
           } catch (e) {
-            console.error("Error parsing init:", e)
+            console.error("Error parsing init:", e);
           }
-        })
+        });
 
         es.addEventListener("result", (event) => {
           try {
-            const data = JSON.parse(
-              (event as MessageEvent).data
-            ) as ResultEvent
+            const data = JSON.parse((event as MessageEvent).data) as ResultEvent;
 
-            const provider = data.provider
+            const provider = data.provider;
             const merged: DomainResult = {
               provider,
               timestamp: data.ts ?? Date.now(),
@@ -211,78 +212,76 @@ export function useDomainSearch() {
                   : undefined,
               rawText: safeString(data.result.rawText),
               error: safeString(data.result.error),
-            }
+            };
 
             setState((prev) => {
-              const idx = prev.results.findIndex((r) => r.provider === provider)
+              const idx = prev.results.findIndex((r) => r.provider === provider);
               const newResults =
                 idx >= 0
                   ? prev.results.map((r, i) => (i === idx ? merged : r))
-                  : [...prev.results, merged]
+                  : [...prev.results, merged];
 
               const total =
-                initProvidersRef.current?.length ?? requestedProviders.length
+                initProvidersRef.current?.length ?? requestedProviders.length;
               const progress = Math.round(
                 Math.min(100, (newResults.length / Math.max(1, total)) * 100)
-              )
+              );
 
               return {
                 ...prev,
                 results: newResults,
                 progress,
                 error: null,
-              }
-            })
-            bumpIdleTimer()
+              };
+            });
+            bumpIdleTimer();
           } catch (e) {
-            console.error("Error parsing result event:", e)
+            console.error("Error parsing result event:", e);
             setState((prev) => ({
               ...prev,
               error: "Failed to parse server response",
-            }))
+            }));
           }
-        })
+        });
 
         es.addEventListener("done", () => {
-          console.log("done")
+          console.log("done");
           setState((prev) => ({
             ...prev,
             isLoading: false,
             isComplete: true,
             progress: 100,
-          }))
-          cleanup()
-        })
+          }));
+          cleanup();
+        });
 
         // Optional server-sent error payload
         es.addEventListener("error", (ev: Event) => {
-          const me = ev as MessageEvent
+          const me = ev as MessageEvent;
           if (me.data) {
-            console.error("server error:", me.data)
+            console.error("server error:", me.data);
             setState((prev) => ({
               ...prev,
               error:
-                typeof me.data === "string"
-                  ? me.data
-                  : "Server error occurred",
-            }))
+                typeof me.data === "string" ? me.data : "Server error occurred",
+            }));
           }
-        })
+        });
 
         es.onerror = (event) => {
-          console.error("SSE connection error:", event)
+          console.error("SSE connection error:", event);
           setState((prev) => ({
             ...prev,
             isLoading: false,
             isComplete: true,
             error: "Connection to server lost",
-          }))
-          cleanup()
-        }
+          }));
+          cleanup();
+        };
 
         // Hard failsafe if done never arrives
         hardTimeoutRef.current = setTimeout(() => {
-          console.log("hard timeout reached")
+          console.log("hard timeout reached");
           setState((prev) => ({
             ...prev,
             isLoading: false,
@@ -291,20 +290,20 @@ export function useDomainSearch() {
               prev.results.length === 0
                 ? "Search timed out with no results, maybe there is a huge traffic querying our single backend, please check after some time, or click on Compare Manually button and do manual comparison"
                 : prev.error,
-          }))
-          cleanup()
-        }, 500_000)
+          }));
+          cleanup();
+        }, 500_000);
       } catch (error) {
-        console.error("Failed to create SSE connection:", error)
+        console.error("Failed to create SSE connection:", error);
         setState((prev) => ({
           ...prev,
           isLoading: false,
           error: "Failed to connect to search service",
-        }))
+        }));
       }
     },
     [cleanup, bumpIdleTimer, requestedProviders]
-  )
+  );
 
   const cancelSearch = useCallback(() => {
     console.log("Search cancelled")

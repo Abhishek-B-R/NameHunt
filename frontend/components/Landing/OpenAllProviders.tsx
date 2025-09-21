@@ -108,7 +108,6 @@ export default function OpenOnRegistrarsButton({
       .map((key) => ({ key, url: `${providerWebsites[key]}${encoded}` }));
   }, [domain, selected]);
 
-  // Unchanged behavior, plus detect if the first popup was blocked
   const openMany = async (
     targets: { key: ProviderKey; url: string }[]
   ): Promise<{ opened: number; blocked: number; firstBlocked: boolean }> => {
@@ -129,7 +128,6 @@ export default function OpenOnRegistrarsButton({
         blocked++;
         if (i === 0) firstBlocked = true;
       }
-      // Small stagger to avoid aggressive popup blockers
       await new Promise((r) => setTimeout(r, 100));
     }
     return { opened, blocked, firstBlocked };
@@ -211,7 +209,7 @@ export default function OpenOnRegistrarsButton({
 
       {open && (
         <Dialog onClose={onCancel}>
-          <div className="text-foreground">
+          <div className="text-foreground my-10">
             <h3 className="text-xl font-semibold text-high-contrast mb-1.5">
               Compare across registrars
             </h3>
@@ -255,7 +253,7 @@ export default function OpenOnRegistrarsButton({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-72 overflow-auto pr-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pr-1">
               {(Object.keys(providerWebsites) as ProviderKey[]).map((key) => (
                 <label
                   key={key}
@@ -298,7 +296,7 @@ export default function OpenOnRegistrarsButton({
             </h3>
 
             <p className="text-sm md:text-base text-white/80 mb-3 text-center">
-              Enable popups to open registrar websites in new tabs.
+              Enable popups to open all the registrar websites in new tabs.
             </p>
 
             <div className="rounded-xl bg-black border border-white/10 p-3">
@@ -334,7 +332,6 @@ export default function OpenOnRegistrarsButton({
                 </div>
               </div>
 
-              {/* Don't show again toggle */}
               <label className="mt-4 flex items-center gap-2 select-none cursor-pointer text-sm text-white/80">
                 <input
                   type="checkbox"
@@ -396,7 +393,7 @@ function Dialog({
   return (
     <Portal>
       <div
-        className="fixed inset-0 z-[9999] flex items-center justify-center"
+        className="fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto py-10"
         role="dialog"
         aria-modal="true"
         onClick={onClose}
@@ -404,13 +401,13 @@ function Dialog({
         <div className="absolute inset-0 bg-black/70" />
         <div
           onClick={(e) => e.stopPropagation()}
-          className="relative w-[50vw] h-[70vh] rounded-2xl p-5 sm:p-6 shadow-2xl border border-white/12 overflow-hidden"
+          className="relative w-[50vw] rounded-2xl p-5 sm:p-6 shadow-2xl border border-white/12"
           style={{
             background:
               "linear-gradient(180deg, rgba(19,25,38,0.98), rgba(19,25,38,0.96))",
           }}
         >
-          <div className="h-full overflow-auto">{children}</div>
+          {children}
         </div>
       </div>
     </Portal>

@@ -1,7 +1,7 @@
 # 🌐 NameHunt
 
-NameHunt helps you find the cheapest place to buy a domain name.
-Just type a domain (with TLD), and we’ll fetch prices from multiple domain registrars, sort them in ascending order, and show you where it’s cheapest to buy.
+NameHunt helps you find the best place to buy a domain name.
+Just type a domain (with TLD), and we’ll fetch prices from multiple domain registrars, sort them in order as per your preferences, and let you decide your best place to buy it.
 
 ## 🚀 Features
 
@@ -9,25 +9,25 @@ Just type a domain (with TLD), and we’ll fetch prices from multiple domain reg
 
 * 📊 Compare domain prices across multiple registrars
 
-* 🏷️ Sorted results — cheapest registrar at the top
+* 🏷️ Sorted results — sort based on your preferences
 
-* ⚡ Fast lookups powered by APIs, curl, and headless scraping
+* ⚡ Fast lookups powered by APIs, and headless scraping
 
 * 📱 Clean UI with Next.js frontend
 
+* 🚀 Open multiple registrar websites via clicking a single button, these opened websites show the exact pricing of the domain that was entered in NameHunt  
+
 ## 🛠️ Tech Stack
 
-Frontend: Next.js + Tailwind CSS
+Frontend: Next.js + Tailwind CSS + Bun
 
-Backend: Hono (running on Bun runtime)
+Backend: Hono (running on Pnpm runtime)
 
 HTTP Fetching (will try next approach if one fails):
 
 * Registrar APIs (preferred when available)
 
-* curl via child processes (for fast/quirky endpoints)
-
-* Puppeteer (as a fallback when no API exists, by scraping registrar sites)
+* Playwright (as a fallback when no API exists, by scraping registrar sites)
 
 ## ⚙️ Approach
 
@@ -37,11 +37,9 @@ User inputs domain → Backend pipeline begins
     ↓
 Try official registrar APIs (fastest + reliable)
     ↓
-If unavailable, spawn `curl` processes for HTTP calls
+If unavailable, fallback to Playwright for scraping
     ↓
-If still unavailable, fallback to Puppeteer for scraping
-    ↓
-Aggregate all prices → Sort ascending → Return to frontend
+Aggregate all prices → Return to frontend
 ```
 
 
@@ -50,11 +48,9 @@ This layered approach makes it robust (works for most registrars) and flexible (
 ```
 📂 Project Structure
 namehunt/
-│── apps/
-│    ├── web/         # Next.js frontend
-│    └── server/      # Hono backend (Bun runtime)
-│
-│── packages/         # Shared utils and configs
+├── frontend/                # Next.js frontend
+├── backend/                 # Hono backend (Bun runtime)
+│── .github/workflows        # CI-CD pipelines logic
 │── README.md
 
 ```
@@ -67,20 +63,20 @@ git clone https://github.com/your-username/namehunt.git
 cd namehunt
 ```
 
-Install dependencies:
+Install dependencies: (use 2 different terminals)
 ```bash
-bun install
+cd frontend && bun install    # (for frontend)
+cd backend && pnpm install    # (for backend)
 ```
 
-Run development servers:
+Run development servers: (use 2 different terminals)
 ```bash
-# Frontend
-cd apps/web
+cd frontend
 bun dev
 
 # Backend
-cd apps/server
-bun dev
+cd backend
+docker-compose up --build
 ```
 
 ## 🤝 Contributing

@@ -125,7 +125,7 @@ export default function HomePage() {
               <div className="flex w-full gap-3">
                 <OpenOnRegistrarsButton
                   domain={domain}
-                  className="flex-1 w-full px-4 sm:text-lg font-semibold rounded-2xl theme-button transition active:scale-[0.99]"
+                  className="flex-1 w-full px-4 sm:text-lg font-semibold rounded-2xl theme-button transition active:scale-[0.99] hidden lg:block"
                   buttonText="Compare Manually"
                 />
                 <Button

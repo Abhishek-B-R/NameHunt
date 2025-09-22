@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useRef, useState } from "react";
@@ -155,7 +154,7 @@ export default function HomePage() {
               </button>
             </div>
 
-            <div className="flex justify-center mt-4">
+            {/* <div className="flex justify-center mt-4">
               <a
                 href="https://www.producthunt.com/products/namehunt?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-namehunt"
                 target="_blank"
@@ -168,7 +167,7 @@ export default function HomePage() {
                   height="54"
                 />
               </a>
-            </div>
+            </div> */}
           </div>
         </div>
       </header>

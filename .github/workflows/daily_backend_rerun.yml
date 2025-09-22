@@ -1,0 +1,24 @@
+name: Daily Backend Restart
+
+on:
+  schedule:
+    # Runs every day at 18:30 UTC. Adjust as needed.
+    - cron: "30 18 * * *"
+  workflow_dispatch:
+
+jobs:
+  daily_restart:
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH restart backend stack
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          script: |
+            set -e
+            cd /home/${{ secrets.SSH_USER }}/NameHunt
+            docker compose down -v --remove-orphans
+            docker compose up -d

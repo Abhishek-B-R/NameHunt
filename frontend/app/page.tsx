@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useRef, useState } from "react";
@@ -152,6 +153,21 @@ export default function HomePage() {
               >
                 Watch demo
               </button>
+            </div>
+
+            <div className="flex justify-center mt-4">
+              <a
+                href="https://www.producthunt.com/products/namehunt?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-namehunt"
+                target="_blank"
+              >
+                <img
+                  src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1018702&theme=dark&t=1758538790646"
+                  alt="NameHunt - Save&#0032;time&#0032;and&#0032;money&#0032;on&#0032;domain&#0032;buying&#0032;with&#0032;NameHunt&#0046; | Product Hunt"
+                  style={{ width: "250px", height: "54px" }}
+                  width="250"
+                  height="54"
+                />
+              </a>
             </div>
           </div>
         </div>

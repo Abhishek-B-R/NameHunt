@@ -21,7 +21,7 @@ export default function Privacy() {
           </p>
         </header>
 
-        <section className="backdrop-blur-md bg-opacity-10 bg-white dark:bg-opacity-10 dark:bg-black rounded-2xl p-6 sm:p-8 shadow-lg">
+        <section className="backdrop-blur-md bg-opacity-10 bg-opacity-10 bg-black rounded-2xl p-6 sm:p-8 shadow-lg">
           <div className="space-y-8">
             <p className="leading-relaxed">
               We respect your privacy. We don&#39;t sell or share personal data.

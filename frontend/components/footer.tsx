@@ -58,7 +58,7 @@ export default function Footer() {
             href="https://github.com/Abhishek-B-R/NameHunt"
             target="_blank"
             rel="noreferrer"
-            className="text-sm font-medium text-teal-600 dark:text-teal-400 dark:hover:text-teal-300 hover:text-teal-500"
+            className="text-sm font-medium text-teal-400 hover:text-teal-300"
           >
             View project on GitHub →
           </a>

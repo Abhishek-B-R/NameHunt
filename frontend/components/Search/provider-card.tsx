@@ -117,7 +117,7 @@ export function ProviderCard({
             {result.ok ? "OK" : "ERR"}
           </Badge>
         </CardTitle>
-        <div className="pt-3 border-t border-gray-200/20 dark:border-gray-700/20">
+        <div className="pt-3 border-t border-gray-700/20">
           <Button
             variant="outline"
             size="sm"
@@ -203,7 +203,7 @@ export function ProviderCard({
         {err && (
           <div className="pt-1">
             {/* <span className="text-muted-foreground">Error</span>
-            <div className="mt-1 rounded bg-red-500/10 text-red-700 dark:text-red-300 p-2">
+            <div className="mt-1 rounded bg-red-500/10 text-red-300 p-2">
               <code className="text-xs break-words">{truncate(err, 300)}</code>
             </div> */}
             <div className="mt-5 bg-red-500/20 p-2">

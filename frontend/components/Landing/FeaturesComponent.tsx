@@ -80,7 +80,7 @@ function FeatureCard({
       className="
         group relative overflow-hidden rounded-2xl
         border border-white/10
-        bg-white/[0.03] dark:bg-white/[0.03]
+      bg-white/[0.03]
         ring-1 ring-white/[0.04]
         shadow-[0_10px_50px_-20px_rgba(0,0,0,0.6)]
         hover:ring-white/10 transition-colors
@@ -96,17 +96,17 @@ function FeatureCard({
         <div
           className="
             mb-4 mx-auto flex h-12 w-12 items-center justify-center rounded-xl
-            bg-gradient-to-br from-teal-600 to-teal-700 text-white
+            bg-gradient-to-br text-white
             shadow-lg shadow-teal-500/20
-            dark:from-teal-600 dark:to-teal-700
+            from-teal-600 to-teal-700
           "
         >
           {icon}
         </div>
-        <h3 className="mb-2 text-lg font-semibold text-slate-900 dark:text-white">
+        <h3 className="mb-2 text-lg font-semibold text-white">
           {title}
         </h3>
-        <p className="text-sm text-slate-600 dark:text-slate-300">
+        <p className="text-sm text-slate-300">
           {description}
         </p>
       </div>
@@ -120,6 +120,6 @@ function FeatureCard({
 function FadeMask() {
   // Soft radial mask so the canvas doesn’t dominate
   return (
-    <div className="absolute inset-0 [mask-image:radial-gradient(420px_at_center,white,transparent)] bg-black/40 dark:bg-black/70" />
+    <div className="absolute inset-0 [mask-image:radial-gradient(420px_at_center,white,transparent)] bg-black/70" />
   )
 }

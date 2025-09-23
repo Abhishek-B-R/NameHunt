@@ -49,7 +49,15 @@
   --sidebar-ring: oklch(0.439 0 0);
 }
 
-html, body { height: 100%; }
+:root {
+  color-scheme: dark;
+}
+
+html {
+  background-color: #0b0f17; 
+  color: #e6edf3;  
+  height: 100%;         
+}
 
 @theme inline {
   --color-background: var(--background);

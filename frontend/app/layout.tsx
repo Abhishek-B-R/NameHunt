@@ -50,11 +50,12 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className="dark">
       <head>
         <link rel="icon" href={logo} />
+        <meta name="color-scheme" content="dark" />
       </head>
-      <body className={poppins.className} suppressHydrationWarning>
+      <body className={poppins.className+" min-h-screen bg-background text-foreground"} suppressHydrationWarning>
         <Suspense fallback={null}>{children}</Suspense>
         <Analytics />
         <Footer />

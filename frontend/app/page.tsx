@@ -46,15 +46,15 @@ export default function HomePage() {
   };
 
   return (
-    <div className="relative min-h-[200vh] bg-gradient-to-b from-slate-50 via-white to-slate-50 dark:from-[#05070A] dark:via-[#070A0F] dark:to-[#05070A]">
+    <div className="relative min-h-[200vh] bg-gradient-to-b from-[#05070A] via-[#070A0F] to-[#05070A]">
       <div
-        className="pointer-events-none absolute inset-0 hidden dark:block"
+        className="pointer-events-none absolute inset-0 block"
         style={{
           height: "50vh",
         }}
       >
         <DarkVeil hueShift={51} warpAmount={3} />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/20 dark:to-black/40" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/40" />
       </div>
 
       <div
@@ -96,7 +96,7 @@ export default function HomePage() {
           <div className="glass-card rounded-3xl p-4 sm:p-6 md:p-8">
             <form onSubmit={handleSearch} className="space-y-4 sm:space-y-6">
               <div className="relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400 w-6 h-6" />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-6 h-6" />
                 <Input
                   ref={searchRef}
                   type="text"
@@ -115,8 +115,8 @@ export default function HomePage() {
               </div>
 
               {validationError && (
-                <Alert className="glass-card border-red-200 dark:border-red-800 max-w-990">
-                  <AlertDescription className="text-red-700 dark:text-red-200 flex justify-center">
+                <Alert className="glass-card border-red-800 max-w-990">
+                  <AlertDescription className="text-red-200 flex justify-center">
                     {validationError}
                   </AlertDescription>
                 </Alert>
@@ -184,15 +184,15 @@ export default function HomePage() {
 
       <section className="w-full py-10">
         <div className="mx-auto max-w-5xl glass-card-gray rounded-2xl p-6 text-center">
-          <h3 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+          <h3 className="text-2xl font-semibold text-gray-100 mb-2">
             Ready to compare prices?
           </h3>
-          <p className="text-gray-600 dark:text-gray-400 mb-4">
+          <p className="text-gray-400 mb-4">
             Find the best deal in under a minute.
           </p>
           <Button
             onClick={() => searchRef?.current?.focus()}
-            className="inline-flex items-center justify-center rounded-lg theme-button px-4 py-2 font-semibold text-white dark:text-black"
+            className="inline-flex items-center justify-center rounded-lg theme-button px-4 py-2 font-semibold text-black"
           >
             Start a search
           </Button>

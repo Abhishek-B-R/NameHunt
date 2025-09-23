@@ -84,3 +84,7 @@ docker-compose up --build
 Contributions are welcome! Feel free to open issues or submit PRs.
 
 ⚡ Made with ❤️ by Abhishek
+
+I've also applied this project for Athena Award, let's see if they like it.
+
+[![Athena Award Badge](https://img.shields.io/endpoint?url=https%3A%2F%2Faward.athena.hackclub.com%2Fapi%2Fbadge)](https://award.athena.hackclub.com?utm_source=readme)

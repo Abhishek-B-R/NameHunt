@@ -144,16 +144,6 @@ export default function HomePage() {
               <span>No markup. Transparent prices only</span>
             </div>
 
-            {/* Watch demo button under CTAs */}
-            <div className="mt-6 flex justify-center">
-              <button
-                type="button"
-                onClick={() => setDemoOpen(true)}
-                className="inline-flex items-center gap-2 rounded-xl px-30 py-2 text-sm font-semibold bg-white/10 hover:bg-white/15 transition"
-              >
-                Watch demo
-              </button>
-            </div>
 
             <div className="flex justify-center mt-4">
               <a
@@ -175,6 +165,17 @@ export default function HomePage() {
                   style={{ width: "250px", height: "54px" }}
                 />
               </a>
+            </div>
+            
+            {/* Watch demo button under CTAs */}
+            <div className="mt-6 flex justify-center">
+              <button
+                type="button"
+                onClick={() => setDemoOpen(true)}
+                className="inline-flex items-center gap-2 rounded-xl px-30 py-2 text-sm font-semibold bg-white/10 hover:bg-white/15 transition"
+              >
+                Watch demo
+              </button>
             </div>
           </div>
         </div>

@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useRef, useState } from "react";
@@ -154,7 +155,7 @@ export default function HomePage() {
               </button>
             </div>
 
-            {/* <div className="flex justify-center mt-4">
+            <div className="flex justify-center mt-4">
               <a
                 href="https://www.producthunt.com/products/namehunt?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-namehunt"
                 target="_blank"
@@ -167,7 +168,14 @@ export default function HomePage() {
                   height="54"
                 />
               </a>
-            </div> */}
+              <a href="https://peerlist.io/abhishekbr/project/namehunt" target="_blank" rel="noreferrer">
+                <img
+                  src="https://peerlist.io/api/v1/projects/embed/PRJHDNDEKQARJPB88FA6OO7GAPKDDJ?showUpvote=true&theme=dark"
+                  alt="NameHunt"
+                  style={{ width: "250px", height: "54px" }}
+                />
+              </a>
+            </div>
           </div>
         </div>
       </header>

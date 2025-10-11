@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic"; // or "force-static" etc.
 // Must be a literal number, not an expression
 import { NextResponse } from "next/server";
 import { extractTweetId } from "@/lib/tweets";
+import fallbackTweets from "@/components/Landing/tweets.json";
 
 // In-memory cache
 let cache: {
@@ -98,7 +99,7 @@ export const revalidate = 86400; // 1 day (24 * 60 * 60)
 
 async function fetchTweetsFromAPI(): Promise<TweetDTO[]> {
   const ids = TWEET_URLS.map(extractTweetId).filter(Boolean) as string[];
-  if (!ids.length) return [];
+  if (!ids.length) return fallbackTweets.tweets;
 
   const token = process.env.X_BEARER_TOKEN;
   if (!token) {
@@ -189,6 +190,6 @@ export async function GET() {
 
     // If no cache and API fails, return fallback data
     console.log("Returning fallback data due to API error");
-    return NextResponse.json({ tweets: [] });
+    return NextResponse.json({ tweets: fallbackTweets.tweets });
   }
 }

@@ -96,52 +96,9 @@ const CACHE_TTL_MS = CACHE_TTL_SECONDS * 1000;
 
 export const revalidate = 86400; // 1 day (24 * 60 * 60)
 
-// Fallback data in case API fails completely
-const FALLBACK_TWEETS: TweetDTO[] = [
-  {
-    id: "fallback-1",
-    text: "NameHunt is amazing! 🔥 Finally found the perfect domain at the best price.",
-    url: "https://x.com/dev_user/status/1234567890",
-    author: {
-      name: "Developer",
-      username: "dev_user",
-      profile_image_url:
-        "https://pbs.twimg.com/profile_images/default_profile_normal.png",
-      verified: false,
-    },
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: "fallback-2",
-    text: "This tool saved me so much time comparing domain prices across registrars! ⚡",
-    url: "https://x.com/dev_user/status/1234567890",
-    author: {
-      name: "Entrepreneur",
-      username: "startup_founder",
-      profile_image_url:
-        "https://pbs.twimg.com/profile_images/default_profile_normal.png",
-      verified: false,
-    },
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: "fallback-3",
-    text: "Love how transparent the pricing is. No hidden fees! 💯",
-    url: "https://x.com/dev_user/status/1234567890",
-    author: {
-      name: "Tech Enthusiast",
-      username: "tech_lover",
-      profile_image_url:
-        "https://pbs.twimg.com/profile_images/default_profile_normal.png",
-      verified: false,
-    },
-    created_at: new Date().toISOString(),
-  },
-];
-
 async function fetchTweetsFromAPI(): Promise<TweetDTO[]> {
   const ids = TWEET_URLS.map(extractTweetId).filter(Boolean) as string[];
-  if (!ids.length) return FALLBACK_TWEETS;
+  if (!ids.length) return [];
 
   const token = process.env.X_BEARER_TOKEN;
   if (!token) {
@@ -232,6 +189,6 @@ export async function GET() {
 
     // If no cache and API fails, return fallback data
     console.log("Returning fallback data due to API error");
-    return NextResponse.json({ tweets: FALLBACK_TWEETS });
+    return NextResponse.json({ tweets: [] });
   }
 }

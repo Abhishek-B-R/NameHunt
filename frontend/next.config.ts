@@ -16,6 +16,9 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  images: {
+    domains: ["pbs.twimg.com"],
+  },
 };
 
 export default nextConfig;

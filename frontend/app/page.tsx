@@ -15,6 +15,7 @@ import { FAQ } from "@/components/Landing/AccordianSection";
 import OpenOnRegistrarsButton from "@/components/Landing/OpenAllProviders";
 import FutureWork from "@/components/Landing/FutureWork";
 import DemoDialog from "@/components/Landing/YoutubeDemo";
+import TestimonialsComponent from "@/components/Landing/TestimonialsComponent";
 
 export default function HomePage() {
   const [domain, setDomain] = useState("");
@@ -144,7 +145,6 @@ export default function HomePage() {
               <span>No markup. Transparent prices only</span>
             </div>
 
-
             <div className="flex justify-center mt-4">
               <a
                 href="https://www.producthunt.com/products/namehunt?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-namehunt"
@@ -158,7 +158,11 @@ export default function HomePage() {
                   height="54"
                 />
               </a>
-              <a href="https://peerlist.io/abhishekbr/project/namehunt" target="_blank" rel="noreferrer">
+              <a
+                href="https://peerlist.io/abhishekbr/project/namehunt"
+                target="_blank"
+                rel="noreferrer"
+              >
                 <img
                   src="https://peerlist.io/api/v1/projects/embed/PRJHDNDEKQARJPB88FA6OO7GAPKDDJ?showUpvote=true&theme=dark"
                   alt="NameHunt"
@@ -166,7 +170,7 @@ export default function HomePage() {
                 />
               </a>
             </div>
-            
+
             {/* Watch demo button under CTAs */}
             <div className="mt-6 flex justify-center">
               <button
@@ -189,6 +193,12 @@ export default function HomePage() {
       </div>
 
       <FeaturesComponent />
+
+      {/* Testimonials Section */}
+      <section className="relative z-10 py-16 px-4 sm:px-6">
+        <TestimonialsComponent />
+      </section>
+      
       <FAQ />
 
       <section className="w-full py-10">

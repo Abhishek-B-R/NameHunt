@@ -1,4 +1,7 @@
 import "server-only";
+export const runtime = "edge"; // or "nodejs" if needed
+export const dynamic = "force-dynamic"; // or "force-static" etc.
+// Must be a literal number, not an expression
 import { NextResponse } from "next/server";
 import { extractTweetId } from "@/lib/tweets";
 
@@ -91,7 +94,7 @@ const TWEET_URLS = [
 const CACHE_TTL_SECONDS = 24 * 60 * 60; // 1 day
 const CACHE_TTL_MS = CACHE_TTL_SECONDS * 1000;
 
-export const revalidate = 24 * 60 * 60; // 1 day
+export const revalidate = 86400; // 1 day (24 * 60 * 60)
 
 // Fallback data in case API fails completely
 const FALLBACK_TWEETS: TweetDTO[] = [

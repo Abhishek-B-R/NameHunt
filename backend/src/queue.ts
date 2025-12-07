@@ -45,4 +45,4 @@ export const providerWorker = new Worker(
     connection,
     concurrency: GLOBAL_CONCURRENCY,
   }
-);
+)

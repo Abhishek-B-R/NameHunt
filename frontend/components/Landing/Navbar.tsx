@@ -1,5 +1,6 @@
+/* eslint-disable @next/next/no-img-element */
 import React, { useState, useEffect } from "react";
-import { Menu, X, Globe } from "lucide-react";
+import { Menu, X } from "lucide-react";
 
 interface NavbarProps {
   onNavigate: (sectionId: string) => void;
@@ -46,11 +47,11 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, searchRef }) => {
           >
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white">
-                <Globe size={18} />
+                <img src="/namehunt.png" alt="namehunt logo"/>
               </div>
-              <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-teal-400 to-teal-600 group-hover:from-teal-300 group-hover:to-cyan-300 transition-all">
+              {/* <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-teal-400 to-teal-600 group-hover:from-teal-300 group-hover:to-cyan-300 transition-all">
                 NameHunt
-              </span>
+              </span> */}
             </div>
           </div>
 

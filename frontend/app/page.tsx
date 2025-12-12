@@ -3,7 +3,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, ShieldCheck } from "lucide-react";
+import { ArrowRight, PlayCircle, Search, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -16,6 +16,7 @@ import OpenOnRegistrarsButton from "@/components/Landing/OpenAllProviders";
 import FutureWork from "@/components/Landing/FutureWork";
 import DemoDialog from "@/components/Landing/YoutubeDemo";
 import TestimonialsComponent from "@/components/Landing/TestimonialsComponent";
+import Navbar from "@/components/Landing/Navbar";
 
 export default function HomePage() {
   const [domain, setDomain] = useState("");
@@ -23,6 +24,22 @@ export default function HomePage() {
   const [validationError, setValidationError] = useState<string | null>(null);
   const router = useRouter();
   const searchRef = useRef<HTMLInputElement>(null);
+
+  const scrollToSection = (id: string) => {
+    const element = document.getElementById(id);
+    if (element) {
+      const offset = 80; // Navbar height
+      const bodyRect = document.body.getBoundingClientRect().top;
+      const elementRect = element.getBoundingClientRect().top;
+      const elementPosition = elementRect - bodyRect;
+      const offsetPosition = elementPosition - offset;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: "smooth",
+      });
+    }
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,7 +65,8 @@ export default function HomePage() {
   };
 
   return (
-    <div className="relative min-h-[200vh] bg-gradient-to-b from-[#05070A] via-[#070A0F] to-[#05070A]">
+    <div className="relative min-h-[200vh] bg-linear-to-b from-[#05070A] via-[#070A0F] to-[#05070A]">
+      <Navbar onNavigate={scrollToSection} searchRef={searchRef} />
       <div
         className="pointer-events-none absolute inset-0 block"
         style={{
@@ -56,26 +74,26 @@ export default function HomePage() {
         }}
       >
         <DarkVeil hueShift={51} warpAmount={3} />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/40" />
+        <div className="absolute inset-0 bg-linear-to-b from-transparent via-transparent to-black/40" />
       </div>
 
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 overflow-hidden -z-[5]"
+        className="pointer-events-none absolute inset-0 overflow-hidden -z-5"
       >
-        <div className="absolute -top-40 -right-32 h-80 w-80 sm:h-96 sm:w-96 bg-[radial-gradient(circle_at_30%_30%,rgba(20,184,166,.18),transparent_60%)] blur-2xl animate-float" />
+        <div className="absolute -top-40 -right-32 h-80 w-80 sm:h-96 sm:w-96 bg-[radial-linear(circle_at_30%_30%,rgba(20,184,166,.18),transparent_60%)] blur-2xl animate-float" />
         <div
-          className="absolute -bottom-40 -left-32 h-80 w-80 sm:h-96 sm:w-96 bg-[radial-gradient(circle_at_70%_70%,rgba(56,189,248,.16),transparent_60%)] blur-2xl animate-float"
+          className="absolute -bottom-40 -left-32 h-80 w-80 sm:h-96 sm:w-96 bg-[radial-linear(circle_at_70%_70%,rgba(56,189,248,.16),transparent_60%)] blur-2xl animate-float"
           style={{ animationDelay: "1.2s" }}
         />
         <div
-          className="absolute top-1/3 left-1/2 -translate-x-1/2 h-[28rem] w-[28rem] sm:h-[34rem] sm:w-[34rem] bg-[conic-gradient(from_180deg_at_50%_50%,rgba(45,212,191,.08),rgba(14,165,233,.08),transparent_60%)] blur-3xl animate-slow-float"
+          className="absolute top-1/3 left-1/2 -translate-x-1/2 h-112 w-md sm:h-136 sm:w-136 bg-[conic-linear(from_180deg_at_50%_50%,rgba(45,212,191,.08),rgba(14,165,233,.08),transparent_60%)] blur-3xl animate-slow-float"
           style={{ animationDelay: "2.4s" }}
         />
       </div>
 
       {/* Hero */}
-      <header className="relative z-10 flex flex-col items-center justify-center min-h-[92vh] px-4 sm:px-6">
+      <header className="relative z-10 flex flex-col items-center justify-center min-h-[92vh] px-4 sm:px-6 pt-30">
         <div className="text-center mb-8 sm:mb-12 animate-fade-in-up">
           <div className="flex items-center justify-center gap-2 sm:gap-3 mb-4">
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold gradient-text">
@@ -105,7 +123,7 @@ export default function HomePage() {
                   placeholder="Enter domain name e.g. example.com"
                   value={domain}
                   onChange={handleDomainChange}
-                  className="glass-input pl-12 pr-4 py-5 text-base sm:text-lg rounded-2xl border-0"
+                  className="glass-input pl-12 pr-4 py-6 text-base sm:text-lg rounded-2xl border-0"
                   autoFocus
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
@@ -124,62 +142,79 @@ export default function HomePage() {
                 </Alert>
               )}
 
-              <div className="flex w-full gap-3">
+              <div className="flex flex-col sm:flex-row w-full gap-4">
                 <OpenOnRegistrarsButton
                   domain={domain}
-                  className="flex-1 w-full px-4 sm:text-lg font-semibold rounded-2xl theme-button transition active:scale-[0.99] hidden lg:block"
+                  className="hidden md:block"
                   buttonText="Compare Manually"
                 />
                 <Button
                   type="submit"
-                  size="lg"
-                  className="flex-1 w-full py-7 md:py-7.5 sm:text-lg font-semibold rounded-2xl theme-button transition active:scale-[0.99]"
+                  className="sm:flex-1 w-full py-5 sm:py-6 text-base sm:text-lg font-bold rounded-2xl theme-button text-white active:scale-[0.98] border border-white/10"
                 >
-                  Analyse
+                  <span className="flex items-center gap-2">
+                    Analyse Domain <ArrowRight className="w-5 h-5" />
+                  </span>
                 </Button>
               </div>
             </form>
 
-            <div className="mt-4 flex items-center justify-center gap-3 text-sm text-medium-contrast">
-              <ShieldCheck className="h-4 w-4" />
-              <span>No markup. Transparent prices only</span>
-            </div>
+            <div className="mt-8 pt-6 border-t border-slate-700 flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="flex items-center gap-2 text-sm text-slate-400 px-3 py-1.5 rounded-full border border-slate-700/50">
+                <ShieldCheck className="h-4 w-4 text-emerald-400" />
+                <span>Transparent prices. No markup.</span>
+              </div>
 
-            <div className="flex justify-center mt-4">
+              {/* Watch Demo - Redesigned to sit nicely in the footer of the card */}
+              <button
+                type="button"
+                onClick={() => setDemoOpen(true)}
+                className="group flex items-center gap-2 text-sm font-medium text-slate-300 hover:text-white transition-colors"
+              >
+                <div className="w-8 h-8 rounded-full bg-black flex items-center justify-center group-hover:bg-teal-500 group-hover:scale-110 transition-all duration-300">
+                  <PlayCircle className="w-5 h-5" />
+                </div>
+                <span className="underline decoration-slate-600 underline-offset-4 group-hover:decoration-teal-400 transition-all">
+                  Watch 1-min demo
+                </span>
+              </button>
+            </div>
+          </div>
+
+          {/* Social Proof Badges - Moved outside main card for better aesthetics but kept in header */}
+          <div
+            className="mt-12 flex flex-col items-center animate-fade-in-up"
+            style={{ animationDelay: "0.3s" }}
+          >
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-4">
+              Featured On
+            </p>
+            <div className="flex flex-wrap justify-center gap-6 items-center opacity-80 hover:opacity-100 transition-opacity duration-300">
               <a
                 href="https://www.producthunt.com/products/namehunt?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-namehunt"
                 target="_blank"
+                className="hover:scale-105 transition-transform duration-300"
               >
                 <img
                   src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1018702&theme=dark&t=1758538790646"
-                  alt="NameHunt - Save&#0032;time&#0032;and&#0032;money&#0032;on&#0032;domain&#0032;buying&#0032;with&#0032;NameHunt&#0046; | Product Hunt"
-                  style={{ width: "250px", height: "54px" }}
-                  width="250"
-                  height="54"
+                  alt="NameHunt on Product Hunt"
+                  style={{ width: "220px", height: "48px" }}
+                  width="220"
+                  height="48"
                 />
               </a>
               <a
                 href="https://peerlist.io/abhishekbr/project/namehunt"
                 target="_blank"
                 rel="noreferrer"
+                className="hover:scale-105 transition-transform duration-300"
               >
                 <img
                   src="https://peerlist.io/api/v1/projects/embed/PRJHDNDEKQARJPB88FA6OO7GAPKDDJ?showUpvote=true&theme=dark"
-                  alt="NameHunt"
-                  style={{ width: "250px", height: "54px" }}
+                  alt="NameHunt on Peerlist"
+                  style={{ width: "220px", height: "48px" }}
                 />
               </a>
-            </div>
-
-            {/* Watch demo button under CTAs */}
-            <div className="mt-6 flex justify-center">
-              <button
-                type="button"
-                onClick={() => setDemoOpen(true)}
-                className="inline-flex items-center gap-2 rounded-xl px-30 py-2 text-sm font-semibold bg-white/10 hover:bg-white/15 transition"
-              >
-                Watch demo
-              </button>
             </div>
           </div>
         </div>
@@ -198,7 +233,7 @@ export default function HomePage() {
       <section className="relative z-10 py-16 px-4 sm:px-6">
         <TestimonialsComponent />
       </section>
-      
+
       <FAQ />
 
       <section className="w-full py-10">

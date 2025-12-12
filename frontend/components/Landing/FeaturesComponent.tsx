@@ -5,7 +5,7 @@ import { CanvasRevealEffect } from "@/components/ui/canvas-reveal-effect"
 
 export default function Features() {
   return (
-    <section className="relative z-10 w-full px-4 sm:px-6 lg:px-10 py-12 mt-8">
+    <section id="features" className="relative z-10 w-full px-4 sm:px-6 lg:px-10 py-12 mt-8">
       <div className="mx-auto max-w-7xl">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
           {/* Card 1 */}
@@ -80,8 +80,8 @@ function FeatureCard({
       className="
         group relative overflow-hidden rounded-2xl
         border border-white/10
-      bg-white/[0.03]
-        ring-1 ring-white/[0.04]
+      bg-white/3
+        ring-1 ring-white/4
         shadow-[0_10px_50px_-20px_rgba(0,0,0,0.6)]
         hover:ring-white/10 transition-colors
       "
@@ -96,7 +96,7 @@ function FeatureCard({
         <div
           className="
             mb-4 mx-auto flex h-12 w-12 items-center justify-center rounded-xl
-            bg-gradient-to-br text-white
+            bg-linear-to-br text-white
             shadow-lg shadow-teal-500/20
             from-teal-600 to-teal-700
           "
@@ -112,7 +112,7 @@ function FeatureCard({
       </div>
 
       {/* Subtle top sheen */}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/5 to-transparent" />
+      <div className="pointer-events-none absolute inset-0 bg-linear-to-b from-white/5 to-transparent" />
     </div>
   )
 }
@@ -120,6 +120,6 @@ function FeatureCard({
 function FadeMask() {
   // Soft radial mask so the canvas doesn’t dominate
   return (
-    <div className="absolute inset-0 [mask-image:radial-gradient(420px_at_center,white,transparent)] bg-black/70" />
+    <div className="absolute inset-0 mask-[radial-linear(420px_at_center,white,transparent)] bg-black/70" />
   )
 }

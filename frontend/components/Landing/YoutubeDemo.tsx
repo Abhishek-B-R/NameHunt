@@ -14,7 +14,7 @@ export default function DemoDialog({
   if (!open) return null;
   return createPortal(
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-6"
+      className="fixed inset-0 z-9999 flex items-center justify-center p-3 sm:p-6"
       role="dialog"
       aria-modal="true"
       onClick={onClose}

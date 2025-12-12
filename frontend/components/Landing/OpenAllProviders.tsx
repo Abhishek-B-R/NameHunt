@@ -1,4 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
+import { cn } from "@/lib/utils";
+import { ExternalLink, X } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -6,6 +8,8 @@ function Portal({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   if (!mounted) return null;
+  // Ensure document.body exists
+  if (typeof document === "undefined") return null;
   return createPortal(children, document.body);
 }
 
@@ -195,57 +199,79 @@ export default function OpenOnRegistrarsButton({
     <>
       <button
         onClick={handleClick}
-        className={[
-          "flex-1 w-full sm:text-lg font-semibold rounded-2xl",
-          "transition active:scale-[0.99]",
-          className || "",
-        ].join(" ")}
+        className={cn(
+          "sm:flex-1 w-full text-base sm:text-lg font-bold rounded-2xl border border-white/10 hover:border-teal-500/50 bg-white/5 hover:bg-white/10 text-slate-200 active:scale-[0.99] py-2",
+          busy && "opacity-70 cursor-not-allowed",
+          className
+        )}
         title={
           !domain.trim() ? "Enter a domain first" : "Compare on registrars"
         }
+        disabled={busy || !domain.trim()}
       >
-        {busy ? "Opening..." : buttonText}
+        {busy ? (
+          "Opening..."
+        ) : (
+          <div className="flex justify-center items-center gap-3">
+            {buttonText}
+            <ExternalLink size={20} className="opacity-70" />
+          </div>
+        )}
       </button>
 
       {open && (
         <Dialog onClose={onCancel}>
-          <div className="text-foreground my-10">
-            <h3 className="text-xl font-semibold text-high-contrast mb-1.5">
-              Compare across registrars
-            </h3>
-            <p className="text-medium-contrast text-sm mb-4">
-              We will open the selected registrar search pages for
-              <span className="font-semibold"> {domain} </span> in new tabs.
-            </p>
+          <div className="text-foreground">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-2xl font-bold text-white mb-1">
+                  Compare Registrars
+                </h3>
+                <p className="text-slate-400 text-sm">
+                  We&apos;ll open search pages for{" "}
+                  <span className="text-teal-400 font-mono">{domain}</span>
+                </p>
+              </div>
+              <button
+                onClick={onCancel}
+                className="p-2 rounded-full hover:bg-white/10 transition-colors"
+              >
+                <X size={20} className="text-slate-400" />
+              </button>
+            </div>
 
-            <div className="rounded-xl border border-white/14 bg-black px-4 py-3 mb-4">
-              <h4 className="font-semibold text-high-contrast">Important</h4>
-              <ul className="list-disc pl-5 text-sm text-subtle-contrast mt-1 space-y-1">
-                <li>Browsers often block multiple popups by default.</li>
+            <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 mb-6">
+              <h4 className="font-semibold text-amber-200 text-sm flex items-center gap-2">
+                Important Note
+              </h4>
+              <ul className="list-disc pl-5 text-xs text-amber-100/70 mt-2 space-y-1">
                 <li>
-                  If prompted, click the popup icon in the address bar and allow
-                  popups for this site.
+                  Browsers often block multiple popups. You may need to allow
+                  them.
                 </li>
-                <li>Select exactly which providers to open below.</li>
+                <li>
+                  Check the address bar for a popup blocker icon if tabs
+                  don&apos;t open.
+                </li>
               </ul>
             </div>
 
-            <div className="mb-3 flex items-center justify-between">
-              <div className="text-sm text-subtle-contrast">
-                Selected {selectedCount} of{" "}
+            <div className="mb-4 flex items-center justify-between bg-white/5 p-3 rounded-xl">
+              <div className="text-sm font-medium text-slate-300">
+                Selected <span className="text-white">{selectedCount}</span> of{" "}
                 {Object.keys(providerWebsites).length}
               </div>
               <div className="flex gap-2">
                 <button
                   type="button"
-                  className="px-3 py-1 rounded-lg text-sm theme-button"
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-teal-500/10 text-teal-400 hover:bg-teal-500/20 transition-colors border border-teal-500/20"
                   onClick={selectAll}
                 >
-                  Select all
+                  Select All
                 </button>
                 <button
                   type="button"
-                  className="px-3 py-1 rounded-lg text-sm bg-white/10 hover:bg-white/15"
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/5 text-slate-400 hover:bg-white/10 transition-colors border border-white/5"
                   onClick={clearAll}
                 >
                   Clear
@@ -253,13 +279,35 @@ export default function OpenOnRegistrarsButton({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pr-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
               {(Object.keys(providerWebsites) as ProviderKey[]).map((key) => (
                 <label
                   key={key}
-                  className="flex items-center justify-between gap-3 rounded-xl border border-white/12 bg-black px-3 py-2"
+                  className={cn(
+                    "flex items-center justify-between gap-3 rounded-xl border px-4 py-3 cursor-pointer transition-all",
+                    selected[key]
+                      ? "bg-teal-500/10 border-teal-500/30"
+                      : "bg-black/40 border-white/10 hover:border-white/20"
+                  )}
                 >
-                  <span className="text-sm">{PROVIDER_LABELS[key]}</span>
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={cn(
+                        "w-2 h-2 rounded-full",
+                        selected[key]
+                          ? "bg-teal-400 shadow-[0_0_8px_rgba(45,212,191,0.6)]"
+                          : "bg-slate-600"
+                      )}
+                    />
+                    <span
+                      className={cn(
+                        "text-sm font-medium",
+                        selected[key] ? "text-white" : "text-slate-400"
+                      )}
+                    >
+                      {PROVIDER_LABELS[key]}
+                    </span>
+                  </div>
                   <Switch
                     checked={!!selected[key]}
                     onChange={() => onToggle(key)}
@@ -268,20 +316,20 @@ export default function OpenOnRegistrarsButton({
               ))}
             </div>
 
-            <div className="mt-5 flex items-center justify-end gap-2">
+            <div className="mt-8 flex items-center justify-end gap-3 pt-6 border-t border-white/10">
               <button
                 type="button"
-                className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15"
+                className="px-5 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
                 onClick={onCancel}
               >
                 Cancel
               </button>
               <button
                 type="button"
-                className="px-4 py-2 rounded-xl font-semibold bg-teal-500 hover:bg-teal-600 text-white shadow-lg hover:shadow-xl"
+                className="px-6 py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-teal-400 to-teal-600 hover:from-teal-400 hover:to-cyan-500 text-white shadow-lg shadow-teal-500/20 hover:shadow-teal-500/30 transition-all transform hover:-translate-y-0.5 active:translate-y-0"
                 onClick={onOk}
               >
-                OK
+                Open {selectedCount} Sites
               </button>
             </div>
           </div>
@@ -393,18 +441,19 @@ function Dialog({
   return (
     <Portal>
       <div
-        className="fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto py-10"
+        className="fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-y-auto"
         role="dialog"
         aria-modal="true"
         onClick={onClose}
       >
-        <div className="absolute inset-0 bg-black/70" />
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in-up" />
         <div
           onClick={(e) => e.stopPropagation()}
-          className="relative w-[50vw] rounded-2xl p-5 sm:p-6 shadow-2xl border border-white/12"
+          className="relative w-full max-w-lg rounded-3xl p-6 sm:p-8 shadow-2xl border border-white/10 animate-scale-in"
           style={{
             background:
-              "linear-gradient(180deg, rgba(19,25,38,0.98), rgba(19,25,38,0.96))",
+              "linear-gradient(145deg, rgba(20,25,35,0.98), rgba(15,18,25,0.99))",
+            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
           }}
         >
           {children}
@@ -425,17 +474,17 @@ function Switch({
     <button
       type="button"
       onClick={onChange}
-      className={[
-        "relative inline-flex h-6 w-11 items-center rounded-full transition",
-        checked ? "bg-teal-500" : "bg-white/15",
-      ].join(" ")}
+      className={cn(
+        "relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+        checked ? "bg-teal-500" : "bg-slate-700"
+      )}
       aria-pressed={checked}
     >
       <span
-        className={[
-          "inline-block h-5 w-5 transform rounded-full bg-white transition",
-          checked ? "translate-x-5" : "translate-x-1",
-        ].join(" ")}
+        className={cn(
+          "pointer-events-none block h-5 w-5 rounded-full bg-white shadow-lg ring-0 transition-transform",
+          checked ? "translate-x-5" : "translate-x-0"
+        )}
       />
     </button>
   );

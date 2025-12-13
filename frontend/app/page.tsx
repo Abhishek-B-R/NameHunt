@@ -3,7 +3,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, PlayCircle, Search, ShieldCheck } from "lucide-react";
+import { ArrowRight, PlayCircle, Search, ShieldCheck, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -175,9 +175,18 @@ export default function HomePage() {
                   <PlayCircle className="w-5 h-5" />
                 </div>
                 <span className="underline decoration-slate-600 underline-offset-4 group-hover:decoration-teal-400 transition-all">
-                  Watch 1-min demo
+                  Watch 1-min launch video
                 </span>
               </button>
+
+              <a
+                href="https://github.com/Abhishek-B-R/NameHunt"
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 text-slate-200 text-sm font-medium rounded-lg border border-teal-700 hover:border-teal-400 hover:shadow-[0_0_15px_-3px_rgba(20,184,166,0.15)] transition-all duration-300 group w-full sm:w-auto justify-center"
+              >
+                <Star/> Star on Github
+              </a>
             </div>
           </div>
 

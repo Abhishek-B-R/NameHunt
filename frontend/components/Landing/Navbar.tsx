@@ -28,6 +28,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, searchRef }) => {
     { name: "Features", id: "features" },
     { name: "Testimonials", id: "testimonials" },
     { name: "FAQ", id: "faq" },
+    { name: "Future work", id: "future-work" },
   ];
 
   return (
@@ -74,7 +75,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, searchRef }) => {
           <div className="hidden md:block">
             <button
               onClick={() => searchRef?.current?.focus()}
-              className="bg-white/5 hover:bg-white/10 text-white border border-white/10 px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-200 hover:scale-105 active:scale-95"
+              className="bg-white/5 hover:bg-white/20 text-white border px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-200 hover:scale-105 active:scale-95 border-teal-800"
             >
               Start Search
             </button>

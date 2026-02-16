@@ -1,51 +1,51 @@
-"use client"
+"use client";
 
-import { useState, useEffect, useRef, useCallback, useMemo } from "react"
-import { validateDomain } from "@/lib/domain-validation"
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { validateDomain } from "@/lib/domain-validation";
 
 export interface DomainResult {
-  provider: string
-  ok: boolean
-  domain: string
-  available?: boolean
-  registrationPrice?: number
-  renewalPrice?: number
-  currency?: string
-  rawText?: string
-  error?: string
-  timestamp?: number
+  provider: string;
+  ok: boolean;
+  domain: string;
+  available?: boolean;
+  registrationPrice?: number;
+  renewalPrice?: number;
+  currency?: string;
+  rawText?: string;
+  error?: string;
+  timestamp?: number;
 }
 
 interface SearchState {
-  results: DomainResult[]
-  isLoading: boolean
-  isComplete: boolean
-  error: string | null
-  progress: number
+  results: DomainResult[];
+  isLoading: boolean;
+  isComplete: boolean;
+  error: string | null;
+  progress: number;
 }
 
 type InitEvent = {
-  ok: boolean
-  domain: string
-  providers: string[]
-  timeoutMs: number
-  ts?: number
-}
+  ok: boolean;
+  domain: string;
+  providers: string[];
+  timeoutMs: number;
+  ts?: number;
+};
 
 type ResultEvent = {
-  provider: string
+  provider: string;
   result: {
-    ok: boolean
-    domain: string
-    available?: boolean
-    registrationPrice?: number
-    renewalPrice?: number
-    currency?: string
-    rawText?: unknown
-    error?: unknown
-  }
-  ts?: number
-}
+    ok: boolean;
+    domain: string;
+    available?: boolean;
+    registrationPrice?: number;
+    renewalPrice?: number;
+    currency?: string;
+    rawText?: unknown;
+    error?: unknown;
+  };
+  ts?: number;
+};
 
 export function useDomainSearch() {
   const [state, setState] = useState<SearchState>({
@@ -54,12 +54,12 @@ export function useDomainSearch() {
     isComplete: false,
     error: null,
     progress: 0,
-  })
+  });
 
-  const eventSourceRef = useRef<EventSource | null>(null)
-  const hardTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const idleTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const initProvidersRef = useRef<string[] | null>(null)
+  const eventSourceRef = useRef<EventSource | null>(null);
+  const hardTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const idleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const initProvidersRef = useRef<string[] | null>(null);
 
   const requestedProviders = useMemo(
     () => [
@@ -76,52 +76,52 @@ export function useDomainSearch() {
       "namesilo",
       "spaceship",
     ],
-    []
-  )
+    [],
+  );
 
   const cleanup = useCallback(() => {
     if (eventSourceRef.current) {
-      eventSourceRef.current.close()
-      eventSourceRef.current = null
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
     }
     if (hardTimeoutRef.current) {
-      clearTimeout(hardTimeoutRef.current)
-      hardTimeoutRef.current = null
+      clearTimeout(hardTimeoutRef.current);
+      hardTimeoutRef.current = null;
     }
     if (idleTimeoutRef.current) {
-      clearTimeout(idleTimeoutRef.current)
-      idleTimeoutRef.current = null
+      clearTimeout(idleTimeoutRef.current);
+      idleTimeoutRef.current = null;
     }
-    initProvidersRef.current = null
-  }, [])
+    initProvidersRef.current = null;
+  }, []);
 
   const safeString = (val: unknown): string | undefined => {
-    if (val == null) return undefined
-    if (typeof val === "string") return val
+    if (val == null) return undefined;
+    if (typeof val === "string") return val;
     try {
-      return JSON.stringify(val)
+      return JSON.stringify(val);
     } catch {
-      return undefined
+      return undefined;
     }
-  }
+  };
 
   const bumpIdleTimer = useCallback(() => {
-    if (idleTimeoutRef.current) clearTimeout(idleTimeoutRef.current)
+    if (idleTimeoutRef.current) clearTimeout(idleTimeoutRef.current);
     idleTimeoutRef.current = setTimeout(() => {
-      console.warn("SSE idle timeout, closing stream")
+      console.warn("SSE idle timeout, closing stream");
       setState((prev) => ({
         ...prev,
         isLoading: false,
         isComplete: true,
         error:
           prev.results.length === 0 ? "No response from server" : prev.error,
-      }))
-      cleanup()
-    }, 180_000)
-  }, [cleanup])
+      }));
+      cleanup();
+    }, 180_000);
+  }, [cleanup]);
 
   const startSearch = useCallback(
-    (domain: string) => {
+    async (domain: string) => {
       const q = domain?.trim() ?? "";
       if (!q) return;
 
@@ -151,11 +151,23 @@ export function useDomainSearch() {
 
       // Use the Next.js proxy route so the secret header is added server-side
       const url = `/api/search/stream?domain=${encodeURIComponent(
-        validatedDomain
+        validatedDomain,
       )}&timeoutMs=180000&providers=${encodeURIComponent(providers)}`;
 
       try {
         // Keep using SSE via EventSource against your proxy route
+        const check = await fetch("/api/search/check");
+
+        if (check.status === 429) {
+          setState((prev) => ({
+            ...prev,
+            isLoading: false,
+            isComplete: true,
+            error: "You are rate limited. Try again later.",
+          }));
+          return;
+        }
+
         const es = new EventSource(url);
         eventSourceRef.current = es;
 
@@ -186,7 +198,9 @@ export function useDomainSearch() {
 
         es.addEventListener("result", (event) => {
           try {
-            const data = JSON.parse((event as MessageEvent).data) as ResultEvent;
+            const data = JSON.parse(
+              (event as MessageEvent).data,
+            ) as ResultEvent;
 
             const provider = data.provider;
             const merged: DomainResult = {
@@ -215,7 +229,9 @@ export function useDomainSearch() {
             };
 
             setState((prev) => {
-              const idx = prev.results.findIndex((r) => r.provider === provider);
+              const idx = prev.results.findIndex(
+                (r) => r.provider === provider,
+              );
               const newResults =
                 idx >= 0
                   ? prev.results.map((r, i) => (i === idx ? merged : r))
@@ -224,7 +240,7 @@ export function useDomainSearch() {
               const total =
                 initProvidersRef.current?.length ?? requestedProviders.length;
               const progress = Math.round(
-                Math.min(100, (newResults.length / Math.max(1, total)) * 100)
+                Math.min(100, (newResults.length / Math.max(1, total)) * 100),
               );
 
               return {
@@ -302,34 +318,34 @@ export function useDomainSearch() {
         }));
       }
     },
-    [cleanup, bumpIdleTimer, requestedProviders]
+    [cleanup, bumpIdleTimer, requestedProviders],
   );
 
   const cancelSearch = useCallback(() => {
-    console.log("Search cancelled")
+    console.log("Search cancelled");
     setState((prev) => ({
       ...prev,
       isLoading: false,
       isComplete: true,
-    }))
-    cleanup()
-  }, [cleanup])
+    }));
+    cleanup();
+  }, [cleanup]);
 
   const getConnectionStatus = useCallback(() => {
-    if (!eventSourceRef.current) return "disconnected"
+    if (!eventSourceRef.current) return "disconnected";
     switch (eventSourceRef.current.readyState) {
       case EventSource.CONNECTING:
-        return "connecting"
+        return "connecting";
       case EventSource.OPEN:
-        return "connected"
+        return "connected";
       case EventSource.CLOSED:
-        return "disconnected"
+        return "disconnected";
       default:
-        return "unknown"
+        return "unknown";
     }
-  }, [])
+  }, []);
 
-  useEffect(() => cleanup, [cleanup])
+  useEffect(() => cleanup, [cleanup]);
 
   return {
     ...state,
@@ -337,5 +353,5 @@ export function useDomainSearch() {
     cancelSearch,
     connectionStatus: getConnectionStatus(),
     expectedProviders: initProvidersRef.current ?? requestedProviders,
-  }
+  };
 }

@@ -163,7 +163,7 @@ export function useDomainSearch() {
             ...prev,
             isLoading: false,
             isComplete: true,
-            error: "You are rate limited. Try again later.",
+            error: "You are rate limited. Try again after some time.",
           }));
           return;
         }

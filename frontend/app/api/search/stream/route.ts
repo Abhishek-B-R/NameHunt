@@ -8,6 +8,10 @@ export async function GET(req: NextRequest) {
   const domain = searchParams.get("domain")?.trim();
   const timeoutMs = searchParams.get("timeoutMs") ?? "180000";
   const providers = searchParams.get("providers") ?? "";
+  const origin = req.headers.get("origin");
+  if (origin && origin !== "https://namehunt.tech") {
+    return new Response("Forbidden", { status: 403 });
+  }
 
   if (!domain) {
     return new Response("Missing domain", { status: 400 });

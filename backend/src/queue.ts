@@ -11,7 +11,7 @@ const connection = {
   url: getRedisUrl(),
   maxRetriesPerRequest: null as any,
   enableReadyCheck: false,
-};
+}
 
 export const providerQueue = new Queue("provider-checks", {
   connection,

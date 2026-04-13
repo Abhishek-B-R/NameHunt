@@ -19,6 +19,6 @@ jobs:
           port: 22
           script: |
             set -e
-            cd /home/${{ secrets.SSH_USER }}/NameHunt
+            cd /${{ secrets.SSH_USER }}/NameHunt
             docker compose down -v --remove-orphans
             docker compose up -d

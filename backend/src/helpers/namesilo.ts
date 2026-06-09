@@ -21,7 +21,7 @@ export class NameSiloClient {
             key: this.apiKey,
             domains: domain,
           },
-        }
+        },
       );
 
       const reply = resp.data?.reply;
@@ -83,7 +83,7 @@ export class NameSiloClient {
   }
 }
 
-export default async function checkNamesilo(domain:string) {
+export default async function checkNamesilo(domain: string) {
   const ns = new NameSiloClient(process.env.NAMESILO_API_KEY || "");
   const result = await ns.getDomainPricing(domain);
   return result;

@@ -4,11 +4,19 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
+    sysctls:
+      vm.overcommit_memory: "1"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
 
   backend:
     build: .
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
     environment:
       REDIS_URL: redis://redis:6379
       PORT: "8080"

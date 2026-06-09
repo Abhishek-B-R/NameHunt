@@ -1,4 +1,4 @@
-import checkNamesilo from "../providers/namesilo.js";
+import checkNamesilo from "../helpers/namesilo.js";
 import type { DCResult } from "../types/resultSchema.js";
 
 export async function checkNamesiloDC(domain: string): Promise<DCResult> {

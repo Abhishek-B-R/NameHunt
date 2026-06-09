@@ -30,6 +30,8 @@ export const providerQueue = new Queue("provider-checks", {
 export const providerEvents = new QueueEvents("provider-checks", { connection });
 
 const GLOBAL_CONCURRENCY = Number(process.env.WORKER_CONCURRENCY || 8);
+const WORKER_LOCK_DURATION = Number(process.env.WORKER_LOCK_DURATION_MS || 120_000);
+const WORKER_STALLED_INTERVAL = Number(process.env.WORKER_STALLED_INTERVAL_MS || 30_000);
 
 export const providerWorker = new Worker(
   "provider-checks",
@@ -44,5 +46,8 @@ export const providerWorker = new Worker(
   {
     connection,
     concurrency: GLOBAL_CONCURRENCY,
+    // Give workers more room to renew locks if Redis has brief latency spikes.
+    lockDuration: WORKER_LOCK_DURATION,
+    stalledInterval: WORKER_STALLED_INTERVAL,
   }
 )

@@ -1,5 +1,5 @@
 import type { DCResult } from "../types/resultSchema.js";
-import checkNamecom from "../providers/namecom.js";
+import checkNamecom from "../helpers/namecom.js";
 
 export async function checkNamecomDC(domain: string): Promise<DCResult> {
   try {

@@ -18,7 +18,7 @@ function getAuthHeaders() {
 export async function checkDomainHostinger(
   domain: string,
   tlds: string[],
-  withAlternatives = false
+  withAlternatives = false,
 ) {
   const response = await axios.post(
     `${HOSTINGER_BASE}/domains/v1/availability`,
@@ -27,7 +27,7 @@ export async function checkDomainHostinger(
       tlds,
       with_alternatives: withAlternatives,
     },
-    { headers: getAuthHeaders() }
+    { headers: getAuthHeaders() },
   );
 
   const parsed = AvailabilityResponse.parse(response.data);
@@ -46,8 +46,7 @@ export async function getDomainPricingHostinger(tld: string) {
   const parsed = CatalogResponse.parse(response.data);
 
   const exact = parsed.find(
-    (item) =>
-      item.name.toLowerCase() === `.${tld.toLowerCase()} domain`
+    (item) => item.name.toLowerCase() === `.${tld.toLowerCase()} domain`,
   );
 
   if (!exact) {
@@ -77,7 +76,7 @@ export async function getPremiumDomainPricingHostinger(domain: string) {
       domain,
       action: "REGISTER", // or RENEW / TRANSFER
     },
-    { headers: getAuthHeaders() }
+    { headers: getAuthHeaders() },
   );
 
   return {

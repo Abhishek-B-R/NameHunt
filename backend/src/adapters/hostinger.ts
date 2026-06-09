@@ -1,11 +1,11 @@
-import { resolveDomainPricing } from "../providers/hostinger.js";
+import { resolveDomainPricing } from "../helpers/hostinger.js";
 import type { DCResult } from "../types/resultSchema.js";
 
 type CatalogPrice = {
   id: string;
   name: string;
   currency: string;
-  price: number; 
+  price: number;
   first_period_price?: number | null;
   period: number | string;
   period_unit: string;
@@ -26,7 +26,8 @@ function pickOneYearPrices(prices: CatalogPrice[]) {
     }))
     .filter((p) => p.unit.startsWith("year") && p.periodNum > 0);
 
-  if (yearly.length === 0) return { reg: undefined, renew: undefined, currency: undefined };
+  if (yearly.length === 0)
+    return { reg: undefined, renew: undefined, currency: undefined };
 
   const oneYear = yearly.find((p) => p.periodNum === 1);
 

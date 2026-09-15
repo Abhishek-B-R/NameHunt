@@ -1,7 +1,7 @@
 import { checkRateLimit, INTERVAL } from "@/lib/ratelimit";
 import { NextRequest, NextResponse } from "next/server";
 
-const API_BASE = "https://api.namehunt.tech";
+const API_BASE = "https://api.namehunt.abhishekbr.com";
 const INTERNAL_SECRET = process.env.INTERNAL_EDGE_SECRET!;
 
 export async function GET(req: NextRequest) {

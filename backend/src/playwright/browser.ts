@@ -202,6 +202,16 @@ async function launchRealChrome(): Promise<Browser> {
     "--no-default-browser-check",
     "--disable-dev-shm-usage",
     "--window-size=1440,960",
+    // Keep memory low on small servers: fewer renderer processes, no background services
+    "--disable-features=site-per-process,IsolateOrigins,Translate,MediaRouter,OptimizationHints",
+    "--renderer-process-limit=2",
+    "--disable-gpu",
+    "--disable-extensions",
+    "--disable-background-networking",
+    "--disable-component-update",
+    "--disable-sync",
+    "--disable-default-apps",
+    "--mute-audio",
     // Chrome refuses to start as root (Docker) without this
     ...(process.getuid?.() === 0 ? ["--no-sandbox"] : []),
     "about:blank",
@@ -239,12 +249,39 @@ function getRealChrome(): Promise<Browser> {
 
 process.once("exit", () => chromeProc?.kill());
 
+// Real Chrome holds ~500MB even when idle. On a shared server, shut it down between
+// searches and let the next lookup relaunch it (a couple of seconds).
+const REAL_CHROME_IDLE_MS = Number(process.env.REAL_CHROME_IDLE_MS || 120_000);
+let openRealPages = 0;
+let lastRealUse = 0;
+setInterval(async () => {
+  if (!realChrome || openRealPages > 0) return;
+  if (Date.now() - lastRealUse < REAL_CHROME_IDLE_MS) return;
+  const pending = realChrome;
+  realChrome = null;
+  const browser = await pending.catch(() => null);
+  await browser?.close().catch(() => {});
+  chromeProc?.kill();
+}, 15_000).unref();
+
 export type ProviderPage = { page: Page; close: () => Promise<void> };
 
+// Scrapers only read text, so skip the heavy downloads. Saves a lot of memory/CPU.
+const SKIP_RESOURCES = new Set(["image", "media", "font"]);
+async function skipHeavyResources(page: Page) {
+  await page
+    .route("**/*", (route) =>
+      SKIP_RESOURCES.has(route.request().resourceType())
+        ? route.abort()
+        : route.continue(),
+    )
+    .catch(() => {});
+}
+
 /**
- * Opens a page for a scraper. Prefers a tab in the shared real Chrome (its default
- * profile keeps bot-manager cookies warm between searches); falls back to a fresh
- * stealth Playwright browser when Chrome isn't available.
+ * Opens a page for a scraper. Uses a tab in the shared real Chrome when it's installed
+ * (its default profile keeps bot-manager cookies warm between searches); otherwise a
+ * fresh stealth Playwright browser, e.g. for local dev without Chrome.
  */
 export async function openProviderPage(
   name: string,
@@ -252,21 +289,34 @@ export async function openProviderPage(
 ): Promise<ProviderPage> {
   if (realChromeAvailable()) {
     try {
-      const browser = await getRealChrome();
-      const page = await browser.contexts()[0]!.newPage();
-      const watchdog = setTimeout(
-        () => page.close({ runBeforeUnload: false }).catch(() => {}),
-        HARD_TIMEOUT_MS,
-      );
-      return {
-        page,
-        close: async () => {
-          clearTimeout(watchdog);
-          await page.close({ runBeforeUnload: false }).catch(() => {});
-        },
+      // count the page before awaiting so the idle reaper can't close Chrome under us
+      openRealPages++;
+      lastRealUse = Date.now();
+      let page: Page;
+      try {
+        const browser = await getRealChrome();
+        page = await browser.contexts()[0]!.newPage();
+      } catch (e) {
+        openRealPages--;
+        throw e;
+      }
+      await skipHeavyResources(page);
+      let closed = false;
+      const close = async () => {
+        if (closed) return;
+        closed = true;
+        clearTimeout(watchdog);
+        openRealPages--;
+        lastRealUse = Date.now();
+        await page.close({ runBeforeUnload: false }).catch(() => {});
       };
+      const watchdog = setTimeout(close, HARD_TIMEOUT_MS);
+      return { page, close };
     } catch (e: any) {
-      console.warn(`[real-chrome] ${name}: falling back to stealth browser:`, e?.message || e);
+      // Don't fall back to launching extra browsers here: if real Chrome failed it's
+      // usually low memory, and more browsers would make it worse. Let this lookup fail.
+      console.warn(`[real-chrome] ${name}: could not open a tab:`, e?.message || e);
+      throw new Error("Browser unavailable, please retry shortly");
     }
   }
 
@@ -281,6 +331,7 @@ export async function openProviderPage(
     proxy: opts.proxy,
   });
   const page = await ctx.newPage();
+  await skipHeavyResources(page);
   return {
     page,
     close: async () => {

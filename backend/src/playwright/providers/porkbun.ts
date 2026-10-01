@@ -1,17 +1,9 @@
-import fs from "fs-extra";
-import path from "path";
-import crypto from "crypto";
-import { newStealthContext } from "../browser.js";
+import { openProviderPage } from "../browser.js";
 import type { DCResult } from "../../types/resultSchema.js";
 import type { RunOpts } from "../../types/runOptions.js";
 
 function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
-}
-
-function freshProfileDir(base = "/tmp") {
-  const id = crypto.randomBytes(6).toString("hex");
-  return path.join(base, `dc_${id}`);
 }
 
 function parsePrice(text: string) {
@@ -35,22 +27,8 @@ export async function checkDomainPorkbun(
   domain: string,
   opts: RunOpts = {}
 ): Promise<DCResult> {
-  const profileDir =
-    opts.ephemeralProfile === false
-      ? path.join(opts.profileBaseDir || "./profiles", "porkbun")
-      : freshProfileDir(opts.profileBaseDir || "/tmp");
-
-  await fs.ensureDir(profileDir);
-
-  const ctx = await newStealthContext({
-    profileDir,
-    headless: opts.headless ?? false,
-    locale: opts.locale || "en-US",
-    timezoneId: opts.timezoneId || "America/New_York",
-    proxy: opts.proxy,
-  });
-
-  const page = await ctx.newPage();
+  // A tab in the shared real Chrome when available (far lighter than a browser per lookup)
+  const { page, close } = await openProviderPage("pb", opts);
 
   try {
     // Directly open Porkbun search page for the requested domain
@@ -85,10 +63,7 @@ export async function checkDomainPorkbun(
         : null;
     });
 
-    await ctx.close();
-    if (opts.ephemeralProfile !== false) {
-      await fs.remove(profileDir).catch(() => {});
-    }
+    await close();
 
     if (!info || info.domain.toLowerCase() !== domain.toLowerCase()) {
       return { ok: false, domain, error: "Exact-match result not found" };
@@ -129,12 +104,7 @@ export async function checkDomainPorkbun(
       rawText: info.text.slice(0, 900),
     };
   } catch (e: any) {
-    try {
-      await ctx.close();
-    } catch {}
-    if (opts.ephemeralProfile !== false) {
-      await fs.remove(profileDir).catch(() => {});
-    }
+    await close();
     return { ok: false, domain, error: e?.message || "Navigation failed" };
   }
 }

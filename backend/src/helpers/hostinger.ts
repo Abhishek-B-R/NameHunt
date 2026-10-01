@@ -27,7 +27,7 @@ export async function checkDomainHostinger(
       tlds,
       with_alternatives: withAlternatives,
     },
-    { headers: getAuthHeaders() },
+    { headers: getAuthHeaders(), timeout: 20_000 },
   );
 
   const parsed = AvailabilityResponse.parse(response.data);
@@ -37,6 +37,7 @@ export async function checkDomainHostinger(
 export async function getDomainPricingHostinger(tld: string) {
   const response = await axios.get(`${HOSTINGER_BASE}/billing/v1/catalog`, {
     headers: getAuthHeaders(),
+    timeout: 20_000,
     params: {
       category: "DOMAIN",
       name: `.${tld.toUpperCase()}*`,
@@ -76,7 +77,7 @@ export async function getPremiumDomainPricingHostinger(domain: string) {
       domain,
       action: "REGISTER", // or RENEW / TRANSFER
     },
-    { headers: getAuthHeaders() },
+    { headers: getAuthHeaders(), timeout: 20_000 },
   );
 
   return {

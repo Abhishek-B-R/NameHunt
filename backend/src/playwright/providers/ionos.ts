@@ -1,17 +1,9 @@
-import fs from "fs-extra";
-import path from "path";
-import crypto from "crypto";
-import { newStealthContext } from "../browser.js";
+import { openProviderPage } from "../browser.js";
 import type { DCResult } from "../../types/resultSchema.js";
 import type { RunOpts } from "../../types/runOptions.js";
 
 function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
-}
-
-function freshProfileDir(base = "/tmp") {
-  const id = crypto.randomBytes(6).toString("hex");
-  return path.join(base, `dc_${id}`);
 }
 
 function parsePrice(text: string) {
@@ -57,22 +49,8 @@ export async function checkDomainIONOS(
   domain: string,
   opts: RunOpts = {}
 ): Promise<DCResult> {
-  const profileDir =
-    opts.ephemeralProfile === false
-      ? path.join(opts.profileBaseDir || "./profiles", "ionos")
-      : freshProfileDir(opts.profileBaseDir || "/tmp");
-
-  await fs.ensureDir(profileDir);
-
-  const ctx = await newStealthContext({
-    profileDir,
-    headless: opts.headless ?? false,
-    locale: opts.locale || "en-US",
-    timezoneId: opts.timezoneId || "America/New_York",
-    proxy: opts.proxy,
-  });
-
-  const page = await ctx.newPage();
+  // A tab in the shared real Chrome when available (far lighter than a browser per lookup)
+  const { page, close } = await openProviderPage("io", opts);
 
   try {
     await page.goto("https://www.ionos.com/domains/domain-finder", {
@@ -103,9 +81,7 @@ export async function checkDomainIONOS(
     }
 
     if (!inputFound) {
-      await ctx.close();
-      if (opts.ephemeralProfile !== false)
-        await fs.remove(profileDir).catch(() => {});
+      await close();
       return { ok: false, domain, error: "Search input not found" };
     }
 
@@ -163,9 +139,7 @@ export async function checkDomainIONOS(
 
     // Invalid/external transfer
     if (/is invalid/i.test(bodyText) || /external domain/i.test(bodyText)) {
-      await ctx.close();
-      if (opts.ephemeralProfile !== false)
-        await fs.remove(profileDir).catch(() => {});
+      await close();
       return {
         ok: true,
         domain,
@@ -179,9 +153,7 @@ export async function checkDomainIONOS(
       /is taken/i.test(bodyText) ||
       /already (exists|registered|taken)/i.test(bodyText)
     ) {
-      await ctx.close();
-      if (opts.ephemeralProfile !== false)
-        await fs.remove(profileDir).catch(() => {});
+      await close();
       return {
         ok: true,
         domain,
@@ -236,9 +208,7 @@ export async function checkDomainIONOS(
       }
 
       if (!availableBanner) {
-        await ctx.close();
-        if (opts.ephemeralProfile !== false)
-          await fs.remove(profileDir).catch(() => {});
+        await close();
         return {
           ok: false,
           domain,
@@ -250,9 +220,7 @@ export async function checkDomainIONOS(
 
       const isPremium = /premium/i.test(cardText);
 
-      await ctx.close();
-      if (opts.ephemeralProfile !== false)
-        await fs.remove(profileDir).catch(() => {});
+      await close();
 
       return {
         ok: true,
@@ -269,9 +237,7 @@ export async function checkDomainIONOS(
     // If structured read worked, we can assume available
     const isPremium = /premium/i.test(scoped.split(/add to cart/i)[0] || "");
 
-    await ctx.close();
-    if (opts.ephemeralProfile !== false)
-      await fs.remove(profileDir).catch(() => {});
+    await close();
 
     return {
       ok: true,
@@ -284,12 +250,7 @@ export async function checkDomainIONOS(
       rawText: scoped.slice(0, 900),
     };
   } catch (e: any) {
-    try {
-      await ctx.close();
-    } catch {}
-    if (opts.ephemeralProfile !== false) {
-      await fs.remove(profileDir).catch(() => {});
-    }
+    await close();
     return { ok: false, domain, error: e?.message || "Navigation failed" };
   }
 }

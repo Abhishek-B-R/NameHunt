@@ -1,17 +1,9 @@
-import fs from "fs-extra";
-import * as path from "path";
-import * as crypto from "crypto";
-import { newStealthContext } from "../browser.js";
+import { openProviderPage } from "../browser.js";
 import type { DCResult } from "../../types/resultSchema.js";
 import type { RunOpts } from "../../types/runOptions.js";
 
 function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
-}
-
-function freshProfileDir(base = "/tmp") {
-  const id = crypto.randomBytes(6).toString("hex");
-  return path.join(base, `dd_${id}`);
 }
 
 function parsePrice(text: string) {
@@ -44,21 +36,8 @@ export async function checkDynadot(
   domain: string,
   opts: RunOpts = {},
 ): Promise<DCResult> {
-  const profileDir =
-    opts.ephemeralProfile === false
-      ? path.join(opts.profileBaseDir || "./profiles", "dynadot")
-      : freshProfileDir(opts.profileBaseDir || "/tmp");
-
-  await fs.ensureDir(profileDir);
-
-  const ctx = await newStealthContext({
-    profileDir,
-    headless: opts.headless ?? false,
-    locale: opts.locale || "en-US",
-    timezoneId: opts.timezoneId || "America/New_York",
-  });
-
-  const page = await ctx.newPage();
+  // A tab in the shared real Chrome when available (far lighter than a browser per lookup)
+  const { page, close } = await openProviderPage("dd", opts);
 
   try {
     const url = `https://www.dynadot.com/?domain=${encodeURIComponent(domain)}`;
@@ -133,10 +112,7 @@ export async function checkDynadot(
     // Taken rows have no price nodes, and innerText() on a missing node waits
     // the full 30s default timeout, so bail out before reading prices.
     if (!available) {
-      await ctx.close();
-      if (opts.ephemeralProfile !== false) {
-        await fs.remove(profileDir).catch(() => {});
-      }
+      await close();
       return {
         ok: true,
         domain,
@@ -211,10 +187,7 @@ export async function checkDynadot(
       (await row.locator("#premium-link.search-registry-premium").count()) >
         0 || /registry\s+premium/i.test(rowText);
 
-    await ctx.close();
-    if (opts.ephemeralProfile !== false) {
-      await fs.remove(profileDir).catch(() => {});
-    }
+    await close();
 
     return {
       ok: true,
@@ -227,12 +200,7 @@ export async function checkDynadot(
       rawText: rowText.slice(0, 900),
     };
   } catch (e: any) {
-    try {
-      await ctx.close();
-    } catch {}
-    if (opts.ephemeralProfile !== false) {
-      await fs.remove(profileDir).catch(() => {});
-    }
+    await close();
     return { ok: false, domain, error: e?.message || "Navigation failed" };
   }
 }

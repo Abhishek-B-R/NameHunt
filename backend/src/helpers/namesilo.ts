@@ -15,6 +15,7 @@ export class NameSiloClient {
       const resp = await axios.get(
         `${this.baseUrl}/checkRegisterAvailability`,
         {
+          timeout: 15_000,
           params: {
             version: 1,
             type: "json",

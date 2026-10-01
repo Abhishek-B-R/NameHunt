@@ -159,7 +159,13 @@ export async function runBrowsingProvider(
 
   // compute with timeout
   const result = await Promise.race<DCResult>([
-    run(domain),
+    run(domain).catch(
+      (e: any): DCResult => ({
+        ok: false,
+        domain,
+        error: e?.message || "Provider failed",
+      }),
+    ),
     new Promise<DCResult>((resolve) =>
       setTimeout(
         () =>

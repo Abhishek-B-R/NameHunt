@@ -117,7 +117,7 @@ export function useDomainSearch() {
           prev.results.length === 0 ? "No response from server" : prev.error,
       }));
       cleanup();
-    }, 70_000);
+    }, 180_000);
   }, [cleanup]);
 
   const startSearch = useCallback(
@@ -152,7 +152,7 @@ export function useDomainSearch() {
       // Use the Next.js proxy route so the secret header is added server-side
       const url = `/api/search/stream?domain=${encodeURIComponent(
         validatedDomain,
-      )}&timeoutMs=45000&providers=${encodeURIComponent(providers)}`;
+      )}&timeoutMs=180000&providers=${encodeURIComponent(providers)}`;
 
       try {
         // Keep using SSE via EventSource against your proxy route
@@ -290,13 +290,7 @@ export function useDomainSearch() {
             ...prev,
             isLoading: false,
             isComplete: true,
-            // A stream cut after partial results is still a usable search
-            error:
-              // EventSource can't expose the status code, and a 429 from the stream
-              // route looks the same as a dropped connection
-              prev.results.length === 0
-                ? "Couldn't reach the search service. If you've run several searches in the last minute, you may be rate limited — please wait a minute and try again."
-                : null,
+            error: "Connection to server lost",
           }));
           cleanup();
         };
@@ -314,7 +308,7 @@ export function useDomainSearch() {
                 : prev.error,
           }));
           cleanup();
-        }, 90_000);
+        }, 500_000);
       } catch (error) {
         console.error("Failed to create SSE connection:", error);
         setState((prev) => ({

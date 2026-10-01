@@ -178,15 +178,6 @@ export function ProviderCard({
           </div>
         )}
 
-        {result.ok && result.available && !price && (
-          <div className="flex items-center justify-between">
-            <span className="text-muted-foreground">Price</span>
-            <span className="text-xs text-muted-foreground">
-              Check on site
-            </span>
-          </div>
-        )}
-
         {/* Show original currency for transparency if conversion happened */}
         {targetCurrency.toUpperCase() !==
           (fromCurrency || "USD").toUpperCase() &&

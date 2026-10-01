@@ -127,15 +127,7 @@ app.post("/search/all", async (c) => {
 app.get("/search/stream", async (c) => {
   const url = new URL(c.req.url);
   const domain = (url.searchParams.get("domain") || "").trim();
-  // The frontend proxies this stream through a serverless function capped at 60s,
-  // so every provider must report back well before that.
-  const maxStreamTimeout = Number(process.env.STREAM_TIMEOUT_MAX_MS || 45_000);
-  const timeoutMs = clampTimeout(
-    Number(url.searchParams.get("timeoutMs") || maxStreamTimeout),
-    maxStreamTimeout,
-    5_000,
-    maxStreamTimeout,
-  );
+  const timeoutMs = clampTimeout(Number(url.searchParams.get("timeoutMs") || 90_000), 90_000, 5_000, 180_000);
   const providersParam = url.searchParams.get("providers") || "";
   const allProviders = Object.values(ProviderNames);
   const providers = providersParam

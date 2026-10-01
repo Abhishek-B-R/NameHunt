@@ -151,12 +151,37 @@ export async function checkDomainIONOS(
 
     await sleep(3000);
 
-    // Prices are parsed from the exact-match block below. The card's .price__strike
-    // node isn't reliable: bundle offers ("name .com+ .net+ ...") use the same markup.
+    // Prefer structured extraction from the result card when present
+    const card = page
+      .locator('section.card__section:has(h3.headline)')
+      .filter({ hasText: domain.split(".")[0] }) // minimal filter
+      .first();
+
     let registrationPriceIntro: number | undefined;
     let registrationCurrency: string | undefined;
     let renewalPrice: number | undefined;
     let renewalCurrency: string | undefined;
+
+    if (await card.isVisible().catch(() => false)) {
+      const priceValueText =
+        (await card.locator(".price__value").first().textContent().catch(() => "")) ||
+        "";
+      const priceStrikeText =
+        (await card.locator(".price__strike").first().textContent().catch(() => "")) ||
+        "";
+
+      if (priceValueText) {
+        const { amount, currency } = parsePrice(priceValueText);
+        registrationPriceIntro = amount;
+        registrationCurrency = currency;
+      }
+
+      if (priceStrikeText) {
+        const { amount, currency } = parsePrice(priceStrikeText);
+        renewalPrice = amount;
+        renewalCurrency = currency;
+      }
+    }
 
     const bodyText = (await page.textContent("body").catch(() => "")) || "";
     const scoped = linesAround(bodyText, domain, 24) || bodyText.slice(0, 1200);
@@ -177,7 +202,7 @@ export async function checkDomainIONOS(
     // Taken
     if (
       /is taken/i.test(bodyText) ||
-      /already (exists|registered|taken)/i.test(bodyText)
+      /already (exists|registered)/i.test(bodyText)
     ) {
       await ctx.close();
       if (opts.ephemeralProfile !== false)
@@ -193,28 +218,34 @@ export async function checkDomainIONOS(
     // If we could not read the structured nodes, fallback to your previous heuristic
     let currency = registrationCurrency || renewalCurrency;
     if (registrationPriceIntro == null || renewalPrice == null) {
-      // Only the exact-match banner counts; suggestions also have "Add to cart"
-      const availableBanner = /still available/i.test(bodyText);
+      const availableBanner =
+        /still available/i.test(bodyText) ||
+        /Add to cart/i.test(bodyText) ||
+        /Introductory Offer/i.test(bodyText);
 
-      // The exact match is the block from "still available!" to its first "Add to cart";
-      // everything after that is suggested domains with their own prices.
-      const pageText = (await page.innerText("body").catch(() => "")) || "";
-      const bannerIdx = pageText.search(/still available/i);
-      let cardText =
-        bannerIdx >= 0
-          ? pageText.slice(bannerIdx).split(/add to cart/i)[0] || ""
-          : "";
-      if (!cardText) cardText = scoped;
+      const cardLocCandidates = [
+        `:text("${domain}")`,
+        `div:has-text("${domain}")`,
+        `section:has-text("${domain}")`,
+        `article:has-text("${domain}")`,
+      ];
 
-      // "$90 $40.99 /year": the per-year figure is what you pay, the other is the list price
-      const perYear = cardText.match(
-        /(₹|\$|€|£)\s*([0-9][\d,]*\.?\d*)\s*\/\s*year/i,
-      );
-      if (perYear && registrationPriceIntro == null) {
-        const { amount, currency: c } = parsePrice(`${perYear[1]}${perYear[2]}`);
-        registrationPriceIntro = amount;
-        if (!currency) currency = c;
+      let cardText = "";
+      for (const sel of cardLocCandidates) {
+        const c = page.locator(sel).first();
+        if (await c.isVisible().catch(() => false)) {
+          const t = (await c.innerText().catch(() => "")) || "";
+          if (
+            /Add to cart/i.test(t) ||
+            /\/\s*year/i.test(t) ||
+            /Introductory Offer/i.test(t)
+          ) {
+            cardText = t;
+            break;
+          }
+        }
       }
+      if (!cardText) cardText = scoped;
 
       const priceHits = parseAllPrices(cardText);
       const amounts = priceHits
@@ -235,20 +266,16 @@ export async function checkDomainIONOS(
         if (!currency) currency = priceHits[0]?.currency;
       }
 
-      if (!availableBanner) {
-        await ctx.close();
-        if (opts.ephemeralProfile !== false)
-          await fs.remove(profileDir).catch(() => {});
-        return {
-          ok: false,
-          domain,
-          error: "Could not determine IONOS availability",
-          rawText: scoped.slice(0, 900),
-        };
-      }
-      const available = true;
+      // Availability inference remains the same
+      const available =
+        availableBanner ||
+        /Add to cart/i.test(cardText) ||
+        /\/\s*year/i.test(cardText) ||
+        Boolean(registrationPriceIntro);
 
-      const isPremium = /premium/i.test(cardText);
+      const isPremium =
+        /premium/i.test(cardText) ||
+        (renewalPrice || registrationPriceIntro || 0) > 50;
 
       await ctx.close();
       if (opts.ephemeralProfile !== false)
@@ -267,7 +294,8 @@ export async function checkDomainIONOS(
     }
 
     // If structured read worked, we can assume available
-    const isPremium = /premium/i.test(scoped.split(/add to cart/i)[0] || "");
+    const isPremium =
+      (renewalPrice || 0) > 50 && !/Introductory Offer/i.test(scoped);
 
     await ctx.close();
     if (opts.ephemeralProfile !== false)

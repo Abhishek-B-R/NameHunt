@@ -31,6 +31,35 @@ function parsePrice(text: string) {
   return { amount, currency };
 }
 
+function extractDomainSection(fullText: string, domain: string): string {
+  const lines = fullText
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line);
+
+  const domainIndex = lines.findIndex((line) => line === domain);
+  if (domainIndex === -1) return "";
+
+  // Extract the domain line and the next several lines that belong to it
+  let section = [lines[domainIndex]];
+  let i = domainIndex + 1;
+
+  // Continue adding lines until we hit another domain name
+  while (i < lines.length) {
+    const line = lines[i];
+    // Stop if we hit another domain (contains a dot and looks like a domain)
+    if (/^[a-zA-Z0-9-]+\.[a-zA-Z]{2,}$/.test(line || "") && line !== domain) {
+      break;
+    }
+    section.push(line);
+    i++;
+    // Limit to reasonable number of lines
+    if (section.length > 15) break;
+  }
+
+  return section.join("\n");
+}
+
 export async function checkDomainPorkbun(
   domain: string,
   opts: RunOpts = {}
@@ -60,73 +89,113 @@ export async function checkDomainPorkbun(
       timeout: opts.timeoutMs ?? 90000,
     });
 
-    // The exact-match row is tagged availableDomainRow / unavailableDomainRow once
-    // the lookup resolves, and its wrapper carries data-price / data-renewal-price.
-    const exactRow = page.locator(
-      "#searchResultsSectionContainer_exact .searchResultRow.availableDomainRow, " +
-        "#searchResultsSectionContainer_exact .searchResultRow.unavailableDomainRow",
-    );
-    await exactRow.first().waitFor({ timeout: 20_000 }).catch(() => {});
+    // Give time for dynamic rendering similar to old behavior
+    await Promise.race([
+      page.waitForSelector('[class*="result"]', { timeout: 12000 }),
+      page.waitForSelector(".domain-result", { timeout: 12000 }),
+      page.waitForSelector('[data-testid*="result"]', { timeout: 12000 }),
+      page.waitForSelector(':has-text("available")', { timeout: 12000 }),
+      page.waitForSelector(':has-text("registered")', { timeout: 12000 }),
+      page.waitForSelector(':has-text("Inquire")', { timeout: 12000 }),
+      sleep(12000),
+    ]);
 
-    const info = await page.evaluate(() => {
-      const row = document.querySelector(
-        "#searchResultsSectionContainer_exact .searchResultRow",
-      );
-      const wrap = row?.parentElement;
-      return row
-        ? {
-            available: row.classList.contains("availableDomainRow"),
-            unavailable: row.classList.contains("unavailableDomainRow"),
-            domain: row.querySelector(".searchResultRowDomain")?.textContent?.trim() || "",
-            price: wrap?.getAttribute("data-price"),
-            renewal: wrap?.getAttribute("data-renewal-price"),
-            text: (row as HTMLElement).innerText || "",
-          }
-        : null;
-    });
+    // Additional wait for dynamic content
+    await sleep(3000);
+
+    const bodyText = await page.textContent("body").catch(() => "");
+
+    // Check if domain appears in results
+    if (!(bodyText || "").toLowerCase().includes(domain.toLowerCase())) {
+      await ctx.close();
+      if (opts.ephemeralProfile !== false) {
+        await fs.remove(profileDir).catch(() => {});
+      }
+      return {
+        ok: false,
+        domain,
+        error: "Domain not found in search results",
+        rawText: (bodyText || "").slice(0, 900),
+      };
+    }
+
+    // Extract only the section related to our specific domain
+    const domainSection = extractDomainSection(bodyText || "", domain);
+
+    if (!domainSection) {
+      await ctx.close();
+      if (opts.ephemeralProfile !== false) {
+        await fs.remove(profileDir).catch(() => {});
+      }
+      return {
+        ok: false,
+        domain,
+        error: "Could not isolate domain section from results",
+        rawText: (bodyText || "").slice(0, 900),
+      };
+    }
+
+    // Check for unavailable indicators specifically in domain section
+    const unavailableIndicators = [
+      /registered/i.test(domainSection) && !/year/i.test(domainSection),
+      /inquire/i.test(domainSection) && !domainSection.includes("$"),
+      /taken/i.test(domainSection),
+      /unavailable/i.test(domainSection),
+      /not\s*available/i.test(domainSection),
+    ];
+
+    const isUnavailable = unavailableIndicators.some(Boolean);
+
+    // If domain is unavailable, return immediately
+    if (isUnavailable) {
+      await ctx.close();
+      if (opts.ephemeralProfile !== false) {
+        await fs.remove(profileDir).catch(() => {});
+      }
+
+      return {
+        ok: true,
+        domain,
+        available: false,
+        isPremium: /premium/i.test(domainSection) || undefined,
+        registrationPrice: undefined,
+        renewalPrice: undefined,
+        currency: undefined,
+        rawText: domainSection.slice(0, 900),
+      };
+    }
+
+    // Extract pricing information from domain section
+    const reg = parsePrice(domainSection);
+
+    // Check if domain is available (has pricing)
+    const available = reg.amount !== undefined;
+
+    // Premium detection
+    const isPremium = /premium/i.test(domainSection);
+
+    // Extract renewal price from domain section
+    const renewMatch = domainSection.match(
+      /renews?\s+at[^$€£₹]*(\$|€|£|₹)\s*([0-9][\d,]*\.?\d*)/i
+    );
+    const renewalPrice = renewMatch
+      ? parseFloat((renewMatch[2] || "").replace(/[^\d.]/g, ""))
+      : undefined;
 
     await ctx.close();
     if (opts.ephemeralProfile !== false) {
       await fs.remove(profileDir).catch(() => {});
     }
 
-    if (!info || info.domain.toLowerCase() !== domain.toLowerCase()) {
-      return { ok: false, domain, error: "Exact-match result not found" };
-    }
-
-    if (info.unavailable) {
-      return {
-        ok: true,
-        domain,
-        available: false,
-        rawText: info.text.slice(0, 900),
-      };
-    }
-
-    if (!info.available) {
-      return {
-        ok: false,
-        domain,
-        error: "Porkbun did not finish the lookup",
-        rawText: info.text.slice(0, 900),
-      };
-    }
-
-    const num = (v?: string | null) => {
-      const n = v == null ? NaN : parseFloat(v);
-      return Number.isFinite(n) ? n : undefined;
-    };
-    const textPrice = parsePrice(info.text);
-
     return {
       ok: true,
       domain,
-      available: true,
-      isPremium: /premium/i.test(info.text),
-      registrationPrice: num(info.price) ?? textPrice.amount,
-      renewalPrice: num(info.renewal),
-      currency: "USD",
-      rawText: info.text.slice(0, 900),
+      available,
+      isPremium: isPremium || undefined,
+      registrationPrice: reg.amount,
+      renewalPrice,
+      currency: reg.currency || "USD",
+      rawText: domainSection.slice(0, 900),
     };
   } catch (e: any) {
     try {

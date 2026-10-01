@@ -133,6 +133,15 @@ const providerMap: Record<
 
 export type ProviderKey = keyof typeof providerMap;
 
+// Registrars that block this server's IP (bot walls / CAPTCHAs) can be skipped so they
+// don't tie up a browser on every search, e.g. DISABLED_PROVIDERS=godaddy,networksolutions
+const DISABLED_PROVIDERS = new Set(
+  (process.env.DISABLED_PROVIDERS || "")
+    .split(",")
+    .map((p) => p.trim().toLowerCase())
+    .filter(Boolean),
+);
+
 export async function runBrowsingProvider(
   provider: ProviderKey,
   domain: string,
@@ -141,6 +150,14 @@ export async function runBrowsingProvider(
   const run = providerMap[provider];
   if (!run) {
     return { ok: false, domain, error: `Unknown provider ${provider}` };
+  }
+
+  if (DISABLED_PROVIDERS.has(provider)) {
+    return {
+      ok: false,
+      domain,
+      error: "Live lookup unavailable for this registrar, check their site directly",
+    };
   }
 
   const timeoutMs = opts?.timeoutMs ?? 30000;

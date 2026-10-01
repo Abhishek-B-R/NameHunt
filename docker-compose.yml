@@ -4,17 +4,29 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
+    sysctls:
+      vm.overcommit_memory: "1"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
 
   backend:
     image: ${DOCKER_USERNAME}/namehunt-backend:latest
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
     env_file:
       - .env
     environment:
       REDIS_URL: redis://redis:6379
       PORT: "8080"
       NODE_ENV: production
+      # This droplet (2GB RAM + 2GB swap) also runs other apps. Keep browser count low.
+      PW_CONCURRENCY: "2"
+      # These block this server's IP (Akamai, CAPTCHA, Cloudflare); remove to retry them
+      DISABLED_PROVIDERS: "godaddy,networksolutions,hostinger"
     dns:
       - 1.1.1.1
       - 8.8.8.8
@@ -24,6 +36,10 @@ services:
     shm_size: "1g"
     security_opt:
       - seccomp=unconfined
+    # Hard cap so a heavy search restarts only this container instead of freezing the server
+    mem_limit: 750m
+    memswap_limit: 1500m
+    pids_limit: 512
 
 # your username set here
 # echo 'DOCKER_USERNAME=yourusername' > /home/azureuser/NameHunt/.env

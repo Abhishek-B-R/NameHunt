@@ -12,19 +12,19 @@ const poppins = Poppins({
 })
 
 export const metadata = {
-  metadataBase: new URL("https://namehunt.tech"),
+  metadataBase: new URL("https://namehunt.abhishekbr.com"),
   title: "NameHunt - Find the Perfect Domain at the Best Price",
   description:
     "Compare domain prices across multiple registrars in real-time. Find your perfect domain name with NameHunt.",
   openGraph: {
     type: "website",
-    url: "https://namehunt.tech/",
+    url: "https://namehunt.abhishekbr.com/",
     title: "NameHunt - Find the Perfect Domain at the Best Price",
     description:
       "Compare domain prices across multiple registrars in real-time. Find your perfect domain name with NameHunt.",
     images: [
       {
-        url: "https://namehunt.tech/preview/landing.png",
+        url: "https://namehunt.abhishekbr.com/preview/landing.png",
         width: 1200,
         height: 630,
         alt: "NameHunt - Find the Perfect Domain at the Best Price",
@@ -38,7 +38,7 @@ export const metadata = {
     title: "NameHunt - Find the Perfect Domain at the Best Price",
     description:
       "Compare domain prices across multiple registrars in real-time. Find your perfect domain name with NameHunt.",
-    images: ["https://namehunt.tech/preview/landing.png"],
+    images: ["https://namehunt.abhishekbr.com/preview/landing.png"],
   },
 };
 

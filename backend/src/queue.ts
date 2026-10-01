@@ -31,7 +31,10 @@ export const providerQueue = new Queue("provider-checks", {
 
 export const providerEvents = new QueueEvents("provider-checks", { connection });
 
-const GLOBAL_CONCURRENCY = Number(process.env.WORKER_CONCURRENCY || 16);
+// Workers mostly await network/browser slots (browsers are capped by PW_CONCURRENCY),
+// so pick jobs up immediately: that way a lookup's 45s timeout starts with the search
+// and HTTP providers never wait behind browser jobs.
+const GLOBAL_CONCURRENCY = Number(process.env.WORKER_CONCURRENCY || 50);
 const WORKER_LOCK_DURATION = Number(process.env.WORKER_LOCK_DURATION_MS || 120_000);
 const WORKER_STALLED_INTERVAL = Number(process.env.WORKER_STALLED_INTERVAL_MS || 30_000);
 

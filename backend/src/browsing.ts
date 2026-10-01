@@ -7,23 +7,25 @@ import type { DCResult } from "./types/resultSchema.js";
 
 import { checkDynadot } from "./playwright/providers/dynadot.js";
 import { checkGoDaddy } from "./playwright/providers/godaddy.js";
-import { checkDomainHover } from "./playwright/providers/hover.js";
 import { checkDomainIONOS } from "./playwright/providers/ionos.js";
 import { checkNamecheap } from "./playwright/providers/namecheap.js";
 import { checkNetworkSolutions } from "./playwright/providers/networksolutions.js";
 import { checkDomainPorkbun } from "./playwright/providers/porkbun.js";
-import { checkSquarespace } from "./playwright/providers/squarespace.js";
-import { checkDomainSpaceship } from "./playwright/providers/spaceship.js";
 import { checkHostingerDC } from "./adapters/hostinger.js";
+import { checkHoverDC } from "./adapters/hover.js";
 import { checkNamecomDC } from "./adapters/namecom.js";
 import { checkNamesiloDC } from "./adapters/namesilo.js";
+import { checkSpaceshipDC } from "./adapters/spaceship.js";
+import { checkSquarespaceDC } from "./adapters/squarespace.js";
 
 const ONE_DAY = 24 * 60 * 60;
+// Failures are usually transient (bot walls, timeouts), so only remember them briefly
+const ERROR_TTL = Number(process.env.ERROR_CACHE_TTL_S || 10 * 60);
 const HARD_TIMEOUT_MS = Number(process.env.HARD_TIMEOUT_MS || 200_000);
 
 // Playwright browser pool
 let browser: Browser | null = null;
-const globalLimit = pLimit(Number(process.env.PW_CONCURRENCY || 8));
+const globalLimit = pLimit(Number(process.env.PW_CONCURRENCY || 6));
 
 async function getBrowser() {
   if (browser) return browser;
@@ -98,33 +100,32 @@ function cacheKey(provider: string, domain: string) {
   return `dc:${provider}:${d}`;
 }
 
-// If your providers can accept withContext, you can rewrite them like:
-// await withContext(({ page }) => checkGoDaddy(domain, { page }))
-// For now, keep your existing signatures and enable headless reuse inside those modules when you migrate.
+// Each Playwright provider launches its own Chromium, so cap how many run at once.
+// HTTP/API providers bypass this limit and never queue behind browsers.
+const browserJob =
+  (fn: (domain: string) => Promise<DCResult>) => (domain: string) =>
+    globalLimit(() => fn(domain));
+
+const pwOpts = { headless: true, ephemeralProfile: true } as const;
+
 const providerMap: Record<
   ProviderNames,
   (domain: string) => Promise<DCResult>
 > = {
-  [ProviderNames.GODADDY]: (domain) =>
-    checkGoDaddy(domain, { headless: true, ephemeralProfile: true }),
-  [ProviderNames.NAMECHEAP]: (domain) =>
-    checkNamecheap(domain, { headless: true, ephemeralProfile: true }),
-  [ProviderNames.SQUARESPACE]: (domain) =>
-    checkSquarespace(domain, { headless: true, ephemeralProfile: true }),
-  [ProviderNames.IONOS]: (domain) =>
-    checkDomainIONOS(domain, { headless: true, ephemeralProfile: true }),
-  [ProviderNames.NETWORKSOLUTIONS]: (domain) =>
-    checkNetworkSolutions(domain, { headless: true, ephemeralProfile: true }),
-  [ProviderNames.DYNADOT]: (domain) =>
-    checkDynadot(domain, { headless: true, ephemeralProfile: true }),
-  [ProviderNames.HOVER]: (domain) =>
-    checkDomainHover(domain, { headless: true, ephemeralProfile: true }),
-  [ProviderNames.PORKBUN]: (domain) =>
-    checkDomainPorkbun(domain, { headless: true, ephemeralProfile: true }),
-  [ProviderNames.SPACESHIP]: (domain) =>
-    checkDomainSpaceship(domain, { headless: true, ephemeralProfile: true }),
+  // Playwright scrapers
+  [ProviderNames.GODADDY]: browserJob((d) => checkGoDaddy(d, pwOpts)),
+  [ProviderNames.NAMECHEAP]: browserJob((d) => checkNamecheap(d, pwOpts)),
+  [ProviderNames.IONOS]: browserJob((d) => checkDomainIONOS(d, pwOpts)),
+  [ProviderNames.NETWORKSOLUTIONS]: browserJob((d) =>
+    checkNetworkSolutions(d, pwOpts),
+  ),
+  [ProviderNames.DYNADOT]: browserJob((d) => checkDynadot(d, pwOpts)),
+  [ProviderNames.PORKBUN]: browserJob((d) => checkDomainPorkbun(d, pwOpts)),
 
-  // SDK adapters
+  // HTTP/API adapters
+  [ProviderNames.SQUARESPACE]: (domain) => checkSquarespaceDC(domain),
+  [ProviderNames.HOVER]: (domain) => checkHoverDC(domain),
+  [ProviderNames.SPACESHIP]: (domain) => checkSpaceshipDC(domain),
   [ProviderNames.HOSTINGER]: (domain) => checkHostingerDC(domain),
   [ProviderNames.NAMECOM]: (domain) => checkNamecomDC(domain),
   [ProviderNames.NAMESILO]: (domain) => checkNamesiloDC(domain),
@@ -175,7 +176,10 @@ export async function runBrowsingProvider(
   // cache write
   try {
     const r = await getRedis();
-    if (r) await r.set(key, JSON.stringify(result), { EX: ONE_DAY });
+    if (r)
+      await r.set(key, JSON.stringify(result), {
+        EX: result.ok ? ONE_DAY : ERROR_TTL,
+      });
   } catch (e: any) {
     console.warn("[redis] set failed:", e?.message || e);
   }

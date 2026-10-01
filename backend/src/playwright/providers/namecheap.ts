@@ -1,17 +1,9 @@
-import fs from "fs-extra";
-import * as path from "node:path";
-import * as crypto from "node:crypto";
-import { newStealthContext } from "../browser.js";
+import { detectBotWall, openProviderPage } from "../browser.js";
 import type { DCResult } from "../../types/resultSchema.js";
 import type { RunOpts } from "../../types/runOptions.js";
 
 function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
-}
-
-function freshProfileDir(base = "/tmp") {
-  const id = crypto.randomBytes(6).toString("hex");
-  return path.join(base, `nc_${id}`);
 }
 
 function parseCurrencyAmount(text: string) {
@@ -35,22 +27,8 @@ export async function checkNamecheap(
   domain: string,
   opts: RunOpts = {}
 ): Promise<DCResult> {
-  const profileDir =
-    opts.ephemeralProfile === false
-      ? path.join(opts.profileBaseDir || "./profiles", "namecheap")
-      : freshProfileDir(opts.profileBaseDir || "/tmp");
-
-  await fs.ensureDir(profileDir);
-
-  const ctx = await newStealthContext({
-    profileDir,
-    headless: opts.headless ?? true,
-    locale: opts.locale || "en-US",
-    timezoneId: opts.timezoneId || "America/New_York",
-    proxy: opts.proxy,
-  });
-
-  const page = await ctx.newPage();
+  // Cloudflare blocks Playwright-launched browsers; prefer real Chrome when available
+  const { page, close } = await openProviderPage("nc", opts);
 
   try {
     const url = `https://www.namecheap.com/domains/registration/results/?domain=${encodeURIComponent(
@@ -62,17 +40,23 @@ export async function checkNamecheap(
       timeout: opts.timeoutMs ?? 90000,
     });
 
+    const blocked = await detectBotWall(page);
+    if (blocked) {
+      await close();
+      return { ok: false, domain, error: blocked };
+    }
+
     // let SPA fetch
     await sleep(900 + Math.random() * 500);
 
     // Find the article whose .name h2 equals requested domain
     // Then use that article for all reads
     const article = page
-      .locator(`article:has(.name h2:has-text("${domain}"))`)
+      .locator(`article:has(.name h2:text-is("${domain}"))`)
       .first();
 
     // Wait briefly for it to appear and finish loading
-    await article.waitFor({ timeout: 30000 });
+    await article.waitFor({ timeout: 20000 });
 
     // Sometimes the element appears then updates; give it one more frame
     await sleep(200);
@@ -84,10 +68,8 @@ export async function checkNamecheap(
     const classAttr = (await article.getAttribute("class")) || "";
     const available = /\bavailable\b/i.test(classAttr) && !/\bunavailable\b/i.test(classAttr);
 
-    // Premium badge
-    const isPremium =
-      (await article.locator(".label.premium").count()) > 0 ||
-      /premium/i.test(rawText);
+    // Premium badge. Don't regex rawText: promo copy like "Non-premium domains only" would match.
+    const isPremium = (await article.locator(".label.premium").count()) > 0;
 
     // Registration price: from .price strong
     let registrationPrice: number | undefined;
@@ -101,24 +83,19 @@ export async function checkNamecheap(
       currency = parsed.currency;
     }
 
-    // Renewal price:
-    // For standard available domains, strong often contains "/yr" and equals the renewal.
-    // For premium available, strong is a one-time price with no "/yr", and there's usually no renewal shown upfront.
+    // Renewal price: discounted domains show "Retail $14.98/yr" under the sale price,
+    // otherwise the "/yr" price in <strong> is also the renewal price.
+    // Premium domains show a one-time price without "/yr" and no renewal upfront.
     let renewalPrice: number | undefined;
 
-    if (await strong.isVisible().catch(() => false)) {
+    const priceBlock =
+      (await article.locator(".price").first().innerText().catch(() => "")) || "";
+    const retail = priceBlock.match(/retail\s*([^\n]*)/i);
+    if (retail) {
+      renewalPrice = parseCurrencyAmount(retail[1] || "").amount;
+    } else if (await strong.isVisible().catch(() => false)) {
       const t = (await strong.innerText().catch(() => "")) || "";
-      const hasPerYear = /\/\s*yr/i.test(t);
-      if (hasPerYear) {
-        // strong includes /yr, so treat this as renewal and also as registration unless a discounted price exists elsewhere.
-        const parsed = parseCurrencyAmount(t);
-        renewalPrice = parsed.amount;
-        // If registrationPrice not set yet from another node, set it to the same as renewal
-        if (registrationPrice === undefined && parsed.amount !== undefined) {
-          registrationPrice = parsed.amount;
-          currency = currency || parsed.currency;
-        }
-      }
+      if (/\/\s*yr/i.test(t)) renewalPrice = parseCurrencyAmount(t).amount;
     }
 
     // Unavailable quick path
@@ -129,10 +106,7 @@ export async function checkNamecheap(
         /unavailable/i.test(rawText));
 
     if (isTaken) {
-      await ctx.close().catch(() => {});
-      if (opts.ephemeralProfile !== false) {
-        await fs.remove(profileDir).catch(() => {});
-      }
+      await close();
       return {
         ok: true,
         domain,
@@ -148,26 +122,18 @@ export async function checkNamecheap(
       ok: true,
       domain,
       available,
-      isPremium: isPremium || (registrationPrice ? registrationPrice > 100 : undefined),
+      isPremium,
       registrationPrice,
       renewalPrice,
       currency: currency || "USD",
       rawText,
     };
 
-    await ctx.close().catch(() => {});
-    if (opts.ephemeralProfile !== false) {
-      await fs.remove(profileDir).catch(() => {});
-    }
+    await close();
 
     return result;
   } catch (e: any) {
-    try {
-      await ctx.close();
-    } catch {}
-    if (opts.ephemeralProfile !== false) {
-      await fs.remove(profileDir).catch(() => {});
-    }
+    await close();
     return { ok: false, domain, error: e?.message || "Navigation failed" };
   }
 }

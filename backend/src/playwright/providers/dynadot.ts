@@ -42,7 +42,7 @@ function parseAllPrices(text: string) {
 
 export async function checkDynadot(
   domain: string,
-  opts: RunOpts = {}
+  opts: RunOpts = {},
 ): Promise<DCResult> {
   const profileDir =
     opts.ephemeralProfile === false
@@ -79,15 +79,18 @@ export async function checkDynadot(
 
     // Verify match
     const rowDomainText =
-      (await row.locator(".search-domain-word").first().innerText().catch(() => "")) ||
-      "";
+      (await row
+        .locator(".search-domain-word")
+        .first()
+        .innerText()
+        .catch(() => "")) || "";
     if (rowDomainText.trim().toLowerCase() !== domain.toLowerCase()) {
       const fallback = page
         .locator(
           [
             `div[role="row"]:has(.search-domain-word:has-text("${domain}"))`,
             `.domain-search-result:has(.search-domain-word:has-text("${domain}"))`,
-          ].join(", ")
+          ].join(", "),
         )
         .first();
       if (await fallback.isVisible().catch(() => false)) row = fallback;
@@ -98,16 +101,17 @@ export async function checkDynadot(
 
     // Strict availability from row-only DOM
     const hasAvailablePhrase =
-      (await row.locator('.search-domain:has-text("is available")').count()) > 0;
+      (await row.locator('.search-domain:has-text("is available")').count()) >
+      0;
 
     const hasTakenBadge =
       (await row.locator(".search-taken-row-text:has-text('Taken')").count()) >
-        0 ||
-      (await row.locator(".search-taken-row").count()) > 0;
+        0 || (await row.locator(".search-taken-row").count()) > 0;
 
     const hasCartIcon =
-      (await row.locator(".add-to-cart-widget-icon, .search-shop-cart").count()) >
-      0;
+      (await row
+        .locator(".add-to-cart-widget-icon, .search-shop-cart")
+        .count()) > 0;
 
     const hasVisiblePrice =
       (await row.locator(".domain-price .search-price").count()) > 0;
@@ -126,13 +130,28 @@ export async function checkDynadot(
       available = false;
     }
 
+    // Taken rows have no price nodes, and innerText() on a missing node waits
+    // the full 30s default timeout, so bail out before reading prices.
+    if (!available) {
+      await ctx.close();
+      if (opts.ephemeralProfile !== false) {
+        await fs.remove(profileDir).catch(() => {});
+      }
+      return {
+        ok: true,
+        domain,
+        available: false,
+        rawText: rowText.slice(0, 900),
+      };
+    }
+
     // Prices from row
     // Registration price: .domain-price .search-price
     const regText =
       (await row
         .locator(".domain-price .search-price")
         .first()
-        .innerText()
+        .innerText({ timeout: 3000 })
         .catch(() => "")) || "";
     const regParsed = parsePrice(regText);
     let registrationPrice = regParsed.amount;
@@ -142,10 +161,13 @@ export async function checkDynadot(
       (await row
         .locator(".search-renewal")
         .first()
-        .innerText()
+        .innerText({ timeout: 3000 })
         .catch(() => "")) || "";
-    const renewalParsed = parsePrice(renewalText);
-    const renewalPrice = renewalParsed.amount;
+    // Newer markup has no .search-renewal node, just "Renewal $10.88" in the row text
+    const renewalParsed = parsePrice(
+      renewalText || rowText.match(/renewal[^\n]*/i)?.[0] || "",
+    );
+    const renewalPrice = available ? renewalParsed.amount : undefined;
 
     // Fallbacks, but still scoped to the row
     if (registrationPrice === undefined) {
@@ -153,7 +175,7 @@ export async function checkDynadot(
         (await row
           .locator(".domain-price .prev-price")
           .first()
-          .innerText()
+          .innerText({ timeout: 3000 })
           .catch(() => "")) || "";
       const prevParsed = parsePrice(prevText);
       if (prevParsed.amount !== undefined) {
@@ -186,8 +208,8 @@ export async function checkDynadot(
 
     // Premium badge detection
     const isPremium =
-      (await row.locator("#premium-link.search-registry-premium").count()) > 0 ||
-      /registry\s+premium/i.test(rowText);
+      (await row.locator("#premium-link.search-registry-premium").count()) >
+        0 || /registry\s+premium/i.test(rowText);
 
     await ctx.close();
     if (opts.ephemeralProfile !== false) {

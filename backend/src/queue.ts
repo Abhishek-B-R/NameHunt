@@ -16,8 +16,10 @@ const connection = {
 export const providerQueue = new Queue("provider-checks", {
   connection,
   defaultJobOptions: {
-    removeOnComplete: 1000,
-    removeOnFail: 1000,
+    // Jobs are deduped by `check:provider:domain`. Keeping finished jobs around longer
+    // would serve stale results for that id; the Redis cache in browsing.ts handles reuse.
+    removeOnComplete: { age: 60 },
+    removeOnFail: { age: 60 },
     attempts: 2,
     backoff: { type: "exponential", delay: 1500 },
     timeout: 60_000,
@@ -29,7 +31,7 @@ export const providerQueue = new Queue("provider-checks", {
 
 export const providerEvents = new QueueEvents("provider-checks", { connection });
 
-const GLOBAL_CONCURRENCY = Number(process.env.WORKER_CONCURRENCY || 8);
+const GLOBAL_CONCURRENCY = Number(process.env.WORKER_CONCURRENCY || 16);
 const WORKER_LOCK_DURATION = Number(process.env.WORKER_LOCK_DURATION_MS || 120_000);
 const WORKER_STALLED_INTERVAL = Number(process.env.WORKER_STALLED_INTERVAL_MS || 30_000);
 

@@ -1,16 +1,9 @@
-import fs from "fs-extra";
-import path from "path";
-import crypto from "crypto";
-import { newStealthContext } from "../browser.js";
+import { detectBotWall, openProviderPage } from "../browser.js";
 import type { DCResult } from "../../types/resultSchema.js";
 import type { RunOpts } from "../../types/runOptions.js";
 
 function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
-}
-function freshProfileDir(base = "/tmp") {
-  const id = crypto.randomBytes(6).toString("hex");
-  return path.join(base, `dc_${id}`);
 }
 function parsePrice(text: string) {
   const m =
@@ -33,22 +26,8 @@ export async function checkNetworkSolutions(
   domain: string,
   opts: RunOpts = {}
 ): Promise<DCResult> {
-  const profileDir =
-    opts.ephemeralProfile === false
-      ? path.join(opts.profileBaseDir || "./profiles", "domaincom")
-      : freshProfileDir(opts.profileBaseDir || "/tmp");
-
-  await fs.ensureDir(profileDir);
-
-  const ctx = await newStealthContext({
-    profileDir,
-    headless: opts.headless ?? true,
-    locale: opts.locale || "en-US",
-    timezoneId: opts.timezoneId || "America/New_York",
-    proxy: opts.proxy,
-  });
-
-  const page = await ctx.newPage();
+  // Cloudflare blocks Playwright-launched browsers; prefer real Chrome when available
+  const { page, close } = await openProviderPage("ns", opts);
 
   // hard ceiling 60 s since page created
   const PAGE_HARD_MS = 60_000;
@@ -58,8 +37,7 @@ export async function checkNetworkSolutions(
   const pageWatchdog = setTimeout(async () => {
     pageTimedOut = true;
     try {
-      await page.close({ runBeforeUnload: false }).catch(() => {});
-      await ctx.close().catch(() => {});
+      await close();
     } catch {}
   }, PAGE_HARD_MS);
 
@@ -104,6 +82,13 @@ export async function checkNetworkSolutions(
         waitUntil: "domcontentloaded",
         timeout: Math.min(opts.timeoutMs ?? 90_000, PAGE_HARD_MS),
       });
+
+      const blocked = await detectBotWall(page);
+      if (blocked) {
+        finalized = true;
+        abortController.abort();
+        return { ok: false, domain, error: blocked };
+      }
 
       await sleep(700 + Math.random() * 500);
 
@@ -208,9 +193,12 @@ export async function checkNetworkSolutions(
         /backorder/i.test(cardText);
       const taken = hasTakenBadge || sentenceTaken || explicitUnavailable;
 
+      // The "is available" container also holds suggestions (some tagged PREMIUM),
+      // so only look at the exact match's own section.
+      const ownSection = cardText.split(/recommended|pricing details|other domains/i)[0] || "";
       const classAttr = (await card.getAttribute("class")) || "";
       const isPremium =
-        classAttr.includes("premium") || /(^|\s)Premium(\s|$)/i.test(cardText);
+        classAttr.includes("premium") || /(^|\s)Premium(\s|$)/i.test(ownSection);
 
       const hasAddToCart =
         (await card.locator("a:has-text('ADD TO CART')").count()) > 0 ||
@@ -294,7 +282,7 @@ export async function checkNetworkSolutions(
         ok: true,
         domain,
         available,
-        isPremium: isPremium || (reg.amount ? reg.amount > 100 : undefined),
+        isPremium,
         registrationPrice: reg.amount,
         renewalPrice,
         currency: reg.currency || "USD",
@@ -307,13 +295,7 @@ export async function checkNetworkSolutions(
     } finally {
       clearTimeout(pageWatchdog);
       // If page already timed out, we already closed resources in watchdog
-      if (!pageTimedOut) {
-        await page.close().catch(() => {});
-        await ctx.close().catch(() => {});
-      }
-      if (opts.ephemeralProfile !== false) {
-        await fs.remove(profileDir).catch(() => {});
-      }
+      if (!pageTimedOut) await close();
     }
   }
 

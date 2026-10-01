@@ -1,18 +1,6 @@
-import fs from "fs-extra";
-import path from "path";
-import crypto from "crypto";
-import { newStealthContext } from "../browser.js";
+import { detectBotWall, openProviderPage } from "../browser.js";
 import type { DCResult } from "../../types/resultSchema.js";
 import type { RunOpts } from "../../types/runOptions.js";
-
-function sleep(ms: number) {
-  return new Promise((res) => setTimeout(res, ms));
-}
-
-function freshProfileDir(base = "/tmp") {
-  const id = crypto.randomBytes(6).toString("hex");
-  return path.join(base, `gd_${id}`);
-}
 
 function extractFirstPrice(text: string) {
   const m =
@@ -28,38 +16,17 @@ function extractFirstPrice(text: string) {
   else if (sym.includes("$") || sym.includes("USD")) currency = "USD";
   else if (sym.includes("€") || sym.includes("EUR")) currency = "EUR";
   else if (sym.includes("£") || sym.includes("GBP")) currency = "GBP";
-  return { amount, currency };
+  return { amount: Number.isFinite(amount) ? amount : undefined, currency };
 }
+
+const norm = (s: string) => s.replace(/\s+/g, "").toLowerCase();
 
 export async function checkGoDaddy(
   domain: string,
-  runOpts: RunOpts = {}
+  runOpts: RunOpts = {},
 ): Promise<DCResult> {
-  const profileDir =
-    runOpts.ephemeralProfile !== false
-      ? freshProfileDir(runOpts.profileBaseDir || "/tmp")
-      : path.join(runOpts.profileBaseDir || "./profiles", "godaddy");
-
-  await fs.ensureDir(profileDir);
-
-  const ctx = await newStealthContext({
-    profileDir,
-    headless: runOpts.headless ?? false,
-    locale: runOpts.locale || "en-US",
-    timezoneId: runOpts.timezoneId || "America/New_York",
-    proxy: runOpts.proxy,
-  });
-
-  const page = await ctx.newPage();
-
-  const cleanup = async () => {
-    try {
-      await ctx.close();
-    } catch {}
-    if (runOpts.ephemeralProfile !== false) {
-      await fs.remove(profileDir).catch(() => {});
-    }
-  };
+  // GoDaddy sits behind Akamai Bot Manager, which only lets real Chrome through
+  const { page, close } = await openProviderPage("gd", runOpts);
 
   try {
     const searchUrl =
@@ -68,163 +35,113 @@ export async function checkGoDaddy(
 
     await page.goto(searchUrl, {
       waitUntil: "domcontentloaded",
-      timeout: runOpts.timeoutMs ?? 90000,
+      timeout: runOpts.timeoutMs ?? 45_000,
       referer: "https://www.godaddy.com/",
     });
 
-    // Small natural delays
-    await sleep(800 + Math.random() * 600);
+    const blocked = await detectBotWall(page, 3_000);
+    if (blocked) return { ok: false, domain, error: blocked };
 
-    // Cookie banner
-    const cookieBtn = page.locator('button:has-text("Accept")').first();
-    if (await cookieBtn.isVisible().catch(() => false)) {
-      await cookieBtn.click().catch(() => {});
+    const availCard = page.locator('[data-cy="availcard"]').first();
+    const unavailable = page.locator('[data-cy="search-result-error"]').first();
+    const takenDbs = page.locator('[data-cy="dbsCard"]').first();
+
+    await Promise.race([
+      availCard.waitFor({ timeout: 20_000 }),
+      unavailable.waitFor({ timeout: 20_000 }),
+      takenDbs.waitFor({ timeout: 20_000 }),
+    ]).catch(() => {});
+
+    // Taken: "Sorry, example.com is unavailable" (older layout: "Domain Taken" DBS card)
+    const unavailableText =
+      (await unavailable.innerText({ timeout: 1_000 }).catch(() => "")) ||
+      (await takenDbs.innerText({ timeout: 1_000 }).catch(() => ""));
+    if (
+      norm(unavailableText).includes(norm(domain)) &&
+      /unavailable|taken/i.test(unavailableText)
+    ) {
+      return {
+        ok: true,
+        domain,
+        available: false,
+        isPremium: false,
+        rawText: unavailableText.slice(0, 900),
+      };
     }
 
-    // Quick bot-wall check
-    const bodyText = ((await page.textContent("body").catch(() => "")) || "")
-      .trim();
-    if (
-      /access denied/i.test(bodyText) ||
-      /don['’]t have permission/i.test(bodyText) ||
-      /errors\.edgesuite\.net/i.test(bodyText)
-    ) {
-      await cleanup();
+    if (!(await availCard.count())) {
+      const bodyText = await page.innerText("body").catch(() => "");
       return {
         ok: false,
         domain,
-        error: "Access Denied by GoDaddy/Akamai",
+        error: "Exact-match result card not found",
         rawText: bodyText.slice(0, 900),
       };
     }
 
-    // Wait for either exact match avail card or domain-taken (DBS) card to show up
-    await Promise.race([
-      page.locator('[data-cy="availcard"]').first().waitFor({ timeout: 30000 }),
-      page.locator('[data-cy="dbsCard"]').first().waitFor({ timeout: 30000 }),
-      sleep(30000),
-    ]);
-
-    // Try exact-match available card
-    const availCard = page.locator('[data-cy="availcard"]').first();
-    if ((await availCard.count()) > 0) {
-      // Verify it is for the exact domain
-      const domainText =
-        (await availCard
-          .locator('[data-testid="single-line-display"]')
-          .innerText()
-          .catch(() => "")) || "";
-      const norm = domainText.replace(/\s+/g, "").toLowerCase();
-      const expect = domain.replace(/\s+/g, "").toLowerCase();
-
-      if (norm.includes(expect)) {
-        // Prices
-        const regText =
-          (await availCard
-            .locator('[data-testid="pricing-main-price"]')
-            .innerText()
-            .catch(() => "")) || "";
-        const renewalText =
-          (await availCard
-            .locator('[data-testid="premium-renewal-price"]')
-            .innerText()
-            .catch(() => "")) || "";
-
-        const reg = extractFirstPrice(regText);
-        const ren = extractFirstPrice(renewalText);
-
-        // Premium tag
-        const tagText =
-          (await availCard
-            .locator('[data-testid="availableCard-tag"]')
-            .innerText()
-            .catch(() => "")) || "";
-        const isPremium =
-          /premium/i.test(tagText) ||
-          (await availCard.locator('[data-testid="premium-renewal-price"]').count()) >
-            0;
-
-        if (reg.amount == null) {
-          // If we cannot read the primary price, treat as error
-          await cleanup();
-          return {
-            ok: false,
-            domain,
-            error: "Could not extract price from available card",
-            rawText:
-              ((await availCard.innerText().catch(() => "")) || "").slice(
-                0,
-                900
-              ),
-          };
-        }
-
-        await cleanup();
-        return {
-          ok: true,
-          domain,
-          available: true,
-          isPremium,
-          registrationPrice: reg.amount,
-          renewalPrice: ren.amount,
-          currency: reg.currency || ren.currency || "USD",
-          rawText:
-            ((await availCard.innerText().catch(() => "")) || "").slice(
-              0,
-              900
-            ),
-        };
-      }
+    const cardDomain = await availCard
+      .locator('[data-testid="single-line-display"]')
+      .first()
+      .innerText({ timeout: 2_000 })
+      .catch(() => "");
+    if (!norm(cardDomain).includes(norm(domain))) {
+      return { ok: false, domain, error: "Result card is for a different domain" };
     }
 
-    // Try exact-match Domain Taken DBS card
-    const dbsCard = page.locator('[data-cy="dbsCard"]').first();
-    if ((await dbsCard.count()) > 0) {
-      const dnText =
-        (await dbsCard.locator(".domain-name").innerText().catch(() => "")) ||
-        "";
-      const badgeText =
-        (await dbsCard
-          .locator('[data-cy="dbsV2-badge"]')
-          .innerText()
-          .catch(() => "")) || "";
+    const cardText = await availCard.innerText().catch(() => "");
+    const readPrice = async (testId: string) =>
+      extractFirstPrice(
+        await availCard
+          .locator(`[data-testid="${testId}"]`)
+          .first()
+          .innerText({ timeout: 1_000 })
+          .catch(() => ""),
+      );
 
-      const norm = dnText.replace(/\s+/g, "").toLowerCase();
-      const expect = domain.replace(/\s+/g, "").toLowerCase();
+    const main = await readPrice("pricing-main-price");
+    const list = await readPrice("pricing-strikethrough-price");
+    const premiumRenewal = await readPrice("premium-renewal-price");
 
-      if (/domain\s*taken/i.test(badgeText) && norm.includes(expect)) {
-        await cleanup();
-        return {
-          ok: true,
-          domain,
-          available: false,
-          isPremium: false,
-          registrationPrice: undefined,
-          renewalPrice: undefined,
-          currency: undefined,
-          rawText:
-            ((await dbsCard.innerText().catch(() => "")) || "").slice(0, 900),
-        };
-      }
+    // GoDaddy often headlines a teaser (e.g. ₹1) that only applies with a multi-year
+    // term. Other registrars are compared on a 1-year purchase, so use the list price then.
+    const multiYearOnly = /with\s+\d+\s*(yr|year)s?\s+term/i.test(cardText);
+    const registration =
+      multiYearOnly && list.amount !== undefined ? list : main;
+
+    if (registration.amount === undefined) {
+      return {
+        ok: false,
+        domain,
+        error: "Could not extract price from available card",
+        rawText: cardText.slice(0, 900),
+      };
     }
 
-    // If we got here, we did not find a trustworthy exact-match card
-    const fallbackText =
-      ((await page.textContent("body").catch(() => "")) || "").slice(0, 900);
+    const tag = await availCard
+      .locator('[data-testid="availableCard-tag"]')
+      .first()
+      .innerText({ timeout: 1_000 })
+      .catch(() => "");
+    const isPremium =
+      /premium/i.test(tag) || premiumRenewal.amount !== undefined;
 
-    await cleanup();
     return {
-      ok: false,
+      ok: true,
       domain,
-      error: "Exact-match result card not found or unreadable",
-      rawText: fallbackText,
+      available: true,
+      isPremium,
+      registrationPrice: registration.amount,
+      renewalPrice: premiumRenewal.amount ?? list.amount ?? main.amount,
+      currency: registration.currency || list.currency || "USD",
+      rawText: cardText.slice(0, 900),
     };
   } catch (e: any) {
-    await cleanup();
     return {
       ok: false,
       domain,
       error: e?.message?.slice(0, 300) || "Navigation or extraction failed",
     };
+  } finally {
+    await close();
   }
 }
